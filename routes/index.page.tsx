@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import "../src/lib/blocks/builtin";
 import "../src/lib/templates/builtin";
+import { Nav } from "../src/components/Nav";
+import { TokenGate } from "../src/components/TokenGate";
+import { adminHeaders } from "../src/lib/api";
 import { isValidHandle } from "../src/lib/identity";
 import { listTemplates } from "../src/lib/registry";
 
@@ -112,11 +115,6 @@ function ShareKit({ handle }: { handle: string }): React.ReactElement {
   );
 }
 
-function adminHeaders(): Record<string, string> {
-  const token = localStorage.getItem("links-admin-token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export default function ClaimPage(): React.ReactElement {
   const templates = useMemo(() => listTemplates(), []);
   const [handle, setHandle] = useState("");
@@ -127,6 +125,7 @@ export default function ClaimPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [claimed, setClaimed] = useState<{ identityId: string; handle: string } | null>(null);
   const [published, setPublished] = useState(false);
+  const [locked, setLocked] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalized = handle.toLowerCase().trim();
@@ -170,6 +169,11 @@ export default function ClaimPage(): React.ReactElement {
           template,
         }),
       });
+      if (r.status === 401) {
+        // Instance runs with LINKS_ADMIN_TOKEN — ask for it right here.
+        setLocked(true);
+        return;
+      }
       const j = (await r.json()) as {
         manifest?: { identityId: string; handle: string };
         error?: string;
@@ -195,6 +199,10 @@ export default function ClaimPage(): React.ReactElement {
         method: "POST",
         headers: adminHeaders(),
       });
+      if (r.status === 401) {
+        setLocked(true);
+        return;
+      }
       if (!r.ok) {
         const j = (await r.json()) as { error?: string };
         setError(j.error ?? `publish failed (${r.status})`);
@@ -217,6 +225,8 @@ export default function ClaimPage(): React.ReactElement {
   };
 
   return (
+    <>
+    <Nav />
     <main className="min-h-screen flex flex-col items-center px-5 py-16">
       <header className="text-center max-w-2xl animate-slide-up">
         <p className="font-mono text-xs tracking-widest text-accent-soft uppercase">
@@ -233,6 +243,11 @@ export default function ClaimPage(): React.ReactElement {
         </p>
       </header>
 
+      {locked ? (
+        <div className="w-full max-w-xl">
+          <TokenGate onReady={() => setLocked(false)} />
+        </div>
+      ) : (
       <section className="w-full max-w-xl mt-12 bg-ink-900 border border-ink-700 rounded-2xl p-6 sm:p-8 shadow-glow animate-fade-in">
         {!claimed ? (
           <>
@@ -318,6 +333,7 @@ export default function ClaimPage(): React.ReactElement {
           <p className="mt-4 text-signal-red text-sm text-center font-mono">{error}</p>
         )}
       </section>
+      )}
 
       <footer className="mt-16 text-center text-slate-500 text-sm max-w-xl">
         <p className="font-semibold text-slate-400">
@@ -329,5 +345,6 @@ export default function ClaimPage(): React.ReactElement {
         </p>
       </footer>
     </main>
+    </>
   );
 }
