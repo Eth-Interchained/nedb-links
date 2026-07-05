@@ -124,7 +124,10 @@ billing.post("/checkout", requireUser, wrap(async (req, res) => {
     });
     return;
   }
-  const origin = `${req.protocol}://${req.get("host") ?? "localhost"}`;
+  // Honor PUBLIC_ORIGIN — behind Cloudflare/nginx, req.protocol reports
+  // plain http and Stripe would redirect buyers back to http:// URLs.
+  const origin =
+    config.publicOrigin || `${req.protocol}://${req.get("host") ?? "localhost"}`;
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [
