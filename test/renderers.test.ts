@@ -267,3 +267,9 @@ test("signal theme — the v3 studio palette is a first-class renderer theme", (
   const fallback = renderProfileHtml(fixture({ theme: "definitely-not-real" }), CTX);
   assert.ok(fallback.includes("#0e7490"), "unknown theme falls back to pro accent");
 });
+
+test("mach theme — chrome-on-gunmetal renderer palette", () => {
+  const html = renderProfileHtml(fixture({ theme: "mach" }), CTX);
+  assert.ok(html.includes("#0b0d11"), "gunmetal canvas");
+  assert.ok(html.includes("#cbd5e1"), "chrome accent");
+});

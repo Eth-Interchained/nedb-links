@@ -368,7 +368,7 @@ export default function EditPage(): React.ReactElement {
       <Nav />
 
       {/* ── Studio action bar — sticky, Publish is THE button ───────────── */}
-      <div className="sticky top-14 z-10 border-b border-ink-800 bg-ink-950/85 backdrop-blur">
+      <div className="streamline sticky top-14 z-10 border-b border-ink-800 bg-ink-950/85 backdrop-blur">
         <div className="max-w-7xl mx-auto px-5 py-3 flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/identities" className="icon-btn shrink-0" title="All identities">

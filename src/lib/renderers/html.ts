@@ -20,6 +20,7 @@ export interface ThemePalette {
 export const THEMES: Record<string, ThemePalette> = {
   pro:      { bg: "#f3f6f8", card: "#ffffffee", text: "#0f172a", sub: "#475569", accent: "#0e7490" },
   signal:   { bg: "#0f172a", card: "#1e293bcc", text: "#f8fafc", sub: "#94a3b8", accent: "#60a5fa" },
+  mach:     { bg: "#0b0d11", card: "#161a2299", text: "#f4f6f9", sub: "#9aa7b8", accent: "#cbd5e1" },
   midnight: { bg: "#070a12", card: "#11162299", text: "#f8fafc", sub: "#94a3b8", accent: "#22d3ee" },
   terminal: { bg: "#05080a", card: "#0c141066", text: "#e2f9ee", sub: "#6ee7b7", accent: "#34d399" },
   violet:   { bg: "#0b0714", card: "#1a112999", text: "#f5f3ff", sub: "#a78bfa", accent: "#8b5cf6" },

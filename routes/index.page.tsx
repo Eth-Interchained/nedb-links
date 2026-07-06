@@ -239,7 +239,7 @@ export default function ClaimPage(): React.ReactElement {
         <p className="font-mono text-xs tracking-widest text-accent-soft uppercase">
           NEDB stores knowledge · Portal renders experiences · Links publishes identity
         </p>
-        <h1 className="font-display text-4xl sm:text-6xl font-bold mt-4 leading-tight">
+        <h1 className="chrome-text font-display text-4xl sm:text-6xl font-bold mt-4 leading-tight">
           One handle.
           <br />
           <span className="text-accent">Every surface.</span>
