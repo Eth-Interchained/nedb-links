@@ -90,7 +90,7 @@ function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
       if (!isFilledUrl(d.url)) return "";
       const url = safeUrl(d.url);
       const icon = d.icon ? `<span class="ic">${esc(d.icon)}</span>` : "";
-      return `<a class="lk" href="${esc(go(origin, m, b.id, url))}" rel="noopener">${icon}<span>${esc(d.label)}</span></a>`;
+      return `<a class="lk${d.icon ? "" : " noic"}" href="${esc(go(origin, m, b.id, url))}" rel="noopener">${icon}<span>${esc(d.label)}</span><span class="ar">›</span></a>`;
     }
     case "social":
       // Social profiles are identity, not content — they render as the
@@ -102,7 +102,7 @@ function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
       if (src) {
         return `<div class="em"><iframe src="${esc(src)}" title="${esc(d.title || "Embedded media")}" loading="lazy" allowfullscreen allow="encrypted-media"></iframe></div>`;
       }
-      return `<a class="lk" href="${esc(go(origin, m, b.id, safeUrl(d.url)))}" rel="noopener"><span>${esc(d.title || d.url)}</span></a>`;
+      return `<a class="lk noic" href="${esc(go(origin, m, b.id, safeUrl(d.url)))}" rel="noopener"><span>${esc(d.title || d.url)}</span><span class="ar">›</span></a>`;
     }
     default:
       return "";
@@ -170,51 +170,106 @@ ${fonts.link}
   * { margin: 0; box-sizing: border-box; }
   body {
     background: ${t.bg}; color: ${t.text};
-    font: 16px/1.5 ${fonts.bodyCss};
+    font: 16px/1.55 ${fonts.bodyCss};
     min-height: 100dvh; display: flex; justify-content: center;
+    position: relative;
+  }
+  /* Atmosphere — a soft accent aurora behind the header. Pure CSS,
+     per-theme, invisible on printouts. */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(60% 34% at 50% -4%, ${t.accent}24, transparent 70%),
+      radial-gradient(42% 26% at 82% 8%, ${t.accent}10, transparent 70%);
   }
   h1, .hd { font-family: ${fonts.headingCss}; }
-  main { width: 100%; max-width: 560px; padding: 48px 20px 64px; }
-  .id { text-align: center; margin-bottom: 28px; }
-  .av { width: 88px; height: 88px; border-radius: 50%; object-fit: cover;
-        border: 2px solid ${t.accent}55; }
-  .avf { display: inline-flex; align-items: center; justify-content: center;
-         font-size: 36px; font-weight: 700; color: ${t.accent};
+  main { width: 100%; max-width: 600px; padding: 56px 22px 72px; position: relative; z-index: 1; }
+
+  /* Staggered entrance — CSS only, killed by reduced-motion. */
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .id { animation: rise 0.5s ease both; }
+  section > * { animation: rise 0.5s ease both; }
+  section > *:nth-child(1) { animation-delay: 0.06s; }
+  section > *:nth-child(2) { animation-delay: 0.1s; }
+  section > *:nth-child(3) { animation-delay: 0.14s; }
+  section > *:nth-child(4) { animation-delay: 0.18s; }
+  section > *:nth-child(5) { animation-delay: 0.22s; }
+  section > *:nth-child(n+6) { animation-delay: 0.26s; }
+  footer { animation: rise 0.5s ease 0.3s both; }
+
+  .id { text-align: center; margin-bottom: 34px; }
+  /* Avatar in a gradient ring, floating on a soft glow. */
+  .avw { display: inline-block; padding: 3px; border-radius: 50%;
+         background: linear-gradient(140deg, ${t.accent}, ${t.accent}22 70%);
+         box-shadow: 0 10px 34px -10px ${t.accent}66; }
+  .av { display: block; width: 96px; height: 96px; border-radius: 50%;
+        object-fit: cover; border: 3px solid ${t.bg}; }
+  .avf { display: flex; align-items: center; justify-content: center;
+         font-size: 40px; font-weight: 800; color: ${t.accent};
          background: ${t.card}; }
-  h1 { font-size: 24px; font-weight: 800; margin-top: 14px; letter-spacing: -0.02em; }
-  .hn { color: ${t.accent}; font-size: 14px; font-weight: 600; margin-top: 2px; }
-  .bio { color: ${t.sub}; font-size: 15px; margin-top: 10px; }
-  .hd { font-size: 13px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.1em; color: ${t.sub}; margin: 26px 4px 2px; }
-  .tx { color: ${t.sub}; font-size: 15px; margin: 10px 4px; }
-  .lk { display: flex; align-items: center; justify-content: center; gap: 10px;
+  h1 { font-size: 28px; font-weight: 800; margin-top: 16px; letter-spacing: -0.025em; }
+  .hn { color: ${t.accent}; font-size: 14px; font-weight: 600; margin-top: 3px; }
+  .bio { color: ${t.sub}; font-size: 15.5px; margin: 12px auto 0; max-width: 42ch; }
+
+  .hd { font-size: 12px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.14em; color: ${t.sub}; margin: 30px 6px 6px; }
+  .tx { color: ${t.sub}; font-size: 15px; margin: 10px 6px; }
+
+  /* Link cards — weight, hierarchy, and a chevron that leans in. */
+  .lk { display: flex; align-items: center; gap: 12px;
         background: ${t.card}; color: ${t.text}; text-decoration: none;
-        border: 1px solid ${t.accent}22; border-radius: 14px;
-        padding: 16px 18px; margin: 10px 0; font-weight: 600;
-        transition: transform 0.12s ease, border-color 0.12s ease;
-        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-  .lk:hover { transform: translateY(-1px); border-color: ${t.accent}66; }
-  .ic { color: ${t.accent}; }
-  .si { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+        border: 1px solid ${t.accent}26; border-radius: 16px;
+        padding: 16px 18px; margin: 12px 0; font-weight: 600; font-size: 16px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 24px -14px ${t.accent}40;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .lk:hover { transform: translateY(-2px); border-color: ${t.accent}77;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.08), 0 14px 34px -14px ${t.accent}59; }
+  .lk:active { transform: scale(0.99); }
+  .ic { display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; border-radius: 11px; flex: none;
+        color: ${t.accent}; background: ${t.accent}14; font-size: 17px; }
+  .lk > span:not(.ic):not(.ar) { flex: 1; text-align: left; }
+  .lk.noic > span:not(.ar) { text-align: center; padding-left: 20px; }
+  .ar { flex: none; color: ${t.accent}; opacity: 0.55; font-weight: 700;
+        transition: transform 0.15s ease, opacity 0.15s ease; }
+  .lk:hover .ar { transform: translateX(3px); opacity: 1; }
+
+  .si { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
   .sb { width: 44px; height: 44px; border-radius: 50%;
         display: inline-flex; align-items: center; justify-content: center;
         color: ${t.accent}; background: ${t.card};
         border: 1px solid ${t.accent}33; text-decoration: none;
-        transition: transform 0.12s ease, border-color 0.12s ease;
-        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-  .sb:hover { transform: translateY(-2px); border-color: ${t.accent}88; }
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 6px 18px -10px ${t.accent}40;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .sb:hover { transform: translateY(-2px); border-color: ${t.accent}99;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.08), 0 10px 24px -10px ${t.accent}59; }
   .sb svg { width: 21px; height: 21px; fill: currentColor; }
-  .em { margin: 10px 0; border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; }
+
+  .em { margin: 12px 0; border-radius: 16px; overflow: hidden; aspect-ratio: 16/9;
+        border: 1px solid ${t.accent}26;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 24px -14px ${t.accent}40; }
   .em iframe { width: 100%; height: 100%; border: 0; }
-  footer { text-align: center; margin-top: 40px; }
-  footer a { color: ${t.sub}; font-size: 12px; text-decoration: none; }
+
+  footer { text-align: center; margin-top: 52px; }
+  footer a { display: inline-flex; align-items: center; gap: 6px;
+             color: ${t.sub}; font-size: 12px; text-decoration: none;
+             border: 1px solid ${t.accent}1f; border-radius: 999px;
+             padding: 7px 14px; transition: border-color 0.15s ease, color 0.15s ease; }
+  footer a:hover { border-color: ${t.accent}55; color: ${t.text}; }
   footer a b { color: ${t.accent}; font-weight: 700; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .id, section > *, footer { animation: none; }
+    .lk, .sb, .ar { transition: none; }
+  }
 </style>
 </head>
 <body>
 <main>
   <header class="id">
-    ${avatar}
+    <div class="avw">${avatar}</div>
     <h1>${esc(m.displayName)}</h1>
     <div class="hn">@${esc(m.handle)}</div>
     ${m.bio ? `<p class="bio">${esc(m.bio)}</p>` : ""}
