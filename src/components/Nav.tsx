@@ -19,7 +19,7 @@ export function Nav(): React.ReactElement {
   }, []);
 
   return (
-    <nav className="w-full border-b border-ink-800 bg-ink-900/85 backdrop-blur sticky top-0 z-20">
+    <nav className="streamline w-full border-b border-ink-800 bg-ink-900/85 backdrop-blur sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6 min-w-0">
           <Link href="/" className="font-display font-bold text-lg tracking-tight text-fg shrink-0">
