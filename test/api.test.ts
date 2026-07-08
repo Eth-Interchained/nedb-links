@@ -440,8 +440,8 @@ test("identityType refiles after claim — the Discover chips follow", async () 
   });
 });
 
-test("/assets serves deployment files — reserved handle, real mount", async () => {
-  const r = await fetch(`${base}/assets/probe.png`);
+test("/brand serves deployment files — and never shadows Vite's /assets", async () => {
+  const r = await fetch(`${base}/brand/probe.png`);
   assert.equal(r.status, 200, "static mount answers");
   assert.equal(await r.text(), "not-really-a-png-and-that-is-fine");
   const missing = await fetch(`${base}/assets/nope.png`);

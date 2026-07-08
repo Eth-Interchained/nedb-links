@@ -428,11 +428,11 @@ test("brand assets thread through the public page when the deployment has them",
 test("brand asset URLs: root-relative allowed, foreign/scheme injection refused", () => {
   const rel = renderProfileHtml(fixture(), {
     origin: "https://links.example.com",
-    brandLogo: "/assets/lynx-mark.png",
-    favicon: "/assets/lynx-favicon.png",
+    brandLogo: "/brand/lynx-mark.png",
+    favicon: "/brand/lynx-favicon.png",
   });
-  assert.ok(rel.includes('src="/assets/lynx-mark.png"'), "relative logo passes");
-  assert.ok(rel.includes('rel="icon" href="/assets/lynx-favicon.png"'), "relative favicon passes");
+  assert.ok(rel.includes('src="/brand/lynx-mark.png"'), "relative logo passes");
+  assert.ok(rel.includes('rel="icon" href="/brand/lynx-favicon.png"'), "relative favicon passes");
 
   const evil = renderProfileHtml(fixture(), {
     origin: "https://links.example.com",
