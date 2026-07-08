@@ -7,6 +7,7 @@
  */
 
 import { anchorOf, bgCss, pageInkOn, type BackgroundConfig } from "../background";
+import { conicStops, giveawayStops } from "../giveawayTheme";
 import { FONTS, isFilledUrl, type Block, type IdentityManifest } from "../identity";
 import { defineRenderer, type RenderContext } from "../registry";
 import { SOC_PREFIX, brandGlyph, socialGlyph } from "./social-icons";
@@ -147,12 +148,6 @@ function embedFrame(url: string): string | null {
   const sp = url.match(/open\.spotify\.com\/(track|album|playlist|artist)\/(\w+)/);
   if (sp) return `https://open.spotify.com/embed/${sp[1]}/${sp[2]}`;
   return null;
-}
-
-/** Conic stops for the giveaway ring — deployment-brandable, hex-only. */
-function holoStops(ctx: RenderContext): string {
-  const c = ctx.holoColors && ctx.holoColors.length >= 2 ? ctx.holoColors : null;
-  return c ? [...c, c[0]].join(", ") : "#6366f1, #22d3ee, #34d399, #fbbf24, #ec4899, #6366f1";
 }
 
 function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
@@ -353,25 +348,35 @@ ${fonts.link}
         transition: transform 0.15s ease, opacity 0.15s ease; }
   .lk:hover .ar { transform: translateX(3px); opacity: 1; }
 
-  /* Giveaway card — link anatomy, HOLOGRAPHIC dress: an animated conic
-     ring etched around the card, its blurred twin bleeding past the
-     edge. Pure CSS; reduced-motion freezes the ring in place. */
+  /* Giveaway card — POP ART, not a circus wheel: a tight curated
+     palette (giveawayStops), a fully OPAQUE card so the ring can never
+     bleed into the text (the actual "can't read it" bug — a 5-hue
+     rainbow ring showing through a translucent card), and a bold
+     screen-print outline instead of a soft glassy blur. The ring still
+     spins for dopamine; it just reads as a poster frame, not a wheel.
+     Reduced-motion freezes it in place. */
   @property --gvang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
   @keyframes gvspin { to { --gvang: 360deg; } }
-  .gvw { position: relative; border-color: transparent;
-         box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 -1px 0 rgb(0 0 0 / 0.35),
-                     0 1px 2px rgba(0,0,0,0.08), 0 8px 24px -14px ${t.accent}40; }
-  .gvw::before, .gvw::after { content: ""; position: absolute; inset: -2px; border-radius: 18px;
-    z-index: -1; pointer-events: none;
-    background: conic-gradient(from var(--gvang), ${holoStops(ctx)});
-    animation: gvspin 7s linear infinite; }
-  .gvw::after { filter: blur(14px); opacity: .4; inset: -4px; }
-  .gvw:hover::before, .gvw:hover::after { animation-duration: 2.4s; }
-  .gvw:hover::after { opacity: .65; }
+  /* The ring is painted in the element's OWN border-box layer — the
+     canonical gradient-border technique. NOT a z-index:-1 pseudo:
+     that approach silently breaks whenever the card becomes a
+     stacking context, and this card does constantly (the entrance
+     animation animates opacity+transform; :active scales; .lk carries
+     backdrop-filter) — each one trapped the ring ABOVE the face and
+     flooded the card with gradient. Caught live, twice, by computed-
+     style instrumentation. This layering is immune to all of it. */
+  .gvw { position: relative; border: 3px solid transparent;
+         background:
+           linear-gradient(${solidBg(t)}, ${solidBg(t)}) padding-box,
+           conic-gradient(from var(--gvang), ${conicStops(ctx.holoColors)}) border-box;
+         animation: rise 0.5s ease both, gvspin 9s linear infinite;
+         -webkit-backdrop-filter: none; backdrop-filter: none;
+         box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 8px 24px -14px ${t.accent}40; }
+  .gvw:hover { animation: rise 0.5s ease both, gvspin 3s linear infinite; }
   .gvw:active { transform: scale(.985); }
-  .gvw .ic { animation: gvpulse 2.6s ease-in-out infinite; }
-  @keyframes gvpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-  .gvw b { display: block; }
+  .gvw .ic { animation: gvpop 2.8s cubic-bezier(.34,1.56,.64,1) infinite; }
+  @keyframes gvpop { 0%, 80%, 100% { transform: scale(1) rotate(0); } 88% { transform: scale(1.16) rotate(-4deg); } 94% { transform: scale(1.05) rotate(2deg); } }
+  .gvw b { display: block; text-shadow: 2px 2px 0 ${giveawayStops(ctx.holoColors)[0]}55; }
   .gvs { display: block; font-style: normal; font-weight: 500; font-size: 12px;
          color: ${t.sub}; margin-top: 2px; }
 
@@ -416,7 +421,7 @@ ${fonts.link}
   @media (prefers-reduced-motion: reduce) {
     .id, section > *, footer { animation: none; }
     .lk, .sb, .ar { transition: none; }
-    .gvw::before, .gvw::after, .gvw .ic { animation: none; }
+    .gvw, .gvw .ic { animation: none; }
   }
 </style>
 </head>

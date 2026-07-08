@@ -28,6 +28,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
 
+import { conicStops, giveawayStops, linearStops } from "../lib/giveawayTheme";
 import { COLLECTIONS, type IdentityManifest } from "../lib/identity";
 import { commitmentOf, computeDraw, sha256Hex } from "../lib/raffle";
 import { esc } from "../lib/renderers/html";
@@ -492,12 +493,8 @@ raffles.get("/api/raffles/:id/leads", requireUser, wrap(async (req, res) => {
 
 // ── Zero-JS public pages: /r/:id (enter) and /r/:id/verify ───────────────────
 
-function holoStops(): string {
-  const c = config.holoColors;
-  return c.length >= 2 ? [...c, c[0]].join(", ") : "#6366f1, #22d3ee, #34d399, #fbbf24, #ec4899, #6366f1";
-}
-
 function pageShell(title: string, body: string): string {
+  const dots = giveawayStops(config.holoColors);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(title)}</title>
@@ -515,25 +512,32 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
   :root { color-scheme: dark; }
   body { background: #070a12; color: #f8fafc; font: 16px/1.6 system-ui, -apple-system, sans-serif; min-height: 100dvh; overflow-x: clip; }
   body::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background: radial-gradient(60% 34% at 50% -4%, #6366f124, transparent 70%),
-                radial-gradient(40% 30% at 85% 20%, #22d3ee12, transparent 70%),
-                radial-gradient(40% 30% at 10% 60%, #ec489910, transparent 70%); }
+    background: radial-gradient(60% 34% at 50% -4%, ${dots[0]}1f, transparent 70%),
+                radial-gradient(40% 30% at 85% 20%, ${dots[2] ?? dots[1]}14, transparent 70%),
+                radial-gradient(40% 30% at 10% 60%, ${dots[1]}10, transparent 70%); }
   main { position: relative; z-index: 1; max-width: 620px; margin: 0 auto; padding: 52px 22px 72px; }
-  h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.02em; }
+  /* Print-registration offset — the cheap screen-print misregistration
+     look, the single most recognizable pop-art visual cue. */
+  h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.02em;
+       text-shadow: 2px 2px 0 ${dots[0]}66, -1px -1px 0 ${dots[2] ?? dots[1]}44; }
   .sub { color: #94a3b8; margin-top: 8px; font-size: 15px; }
 
-  /* Holographic card: an animated conic ring, etched into the surface,
-     with a blurred twin BLEEDING past the edges. */
+  /* POP ART, not a circus wheel: a tight curated palette, a fully
+     OPAQUE card (the actual "can't read the labels" bug was a 5-hue
+     rainbow ring bleeding through a ~93%-opacity glassy card), and a
+     bold screen-print outline instead of a soft blurred halo. A
+     subtle Ben-Day halftone dot texture is the authentic pop-art
+     signature touch — Lichtenstein, not liquid-glass. */
   @keyframes gvspin { to { --gvang: 360deg; } }
-  .card { position: relative; background: #0e1424ee; border-radius: 18px; padding: 24px; margin-top: 22px;
-          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), inset 0 -1px 0 rgb(0 0 0 / 0.5);
-          -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-  .card::before, .card::after { content: ""; position: absolute; inset: -2px; border-radius: 20px; z-index: -1;
-    background: conic-gradient(from var(--gvang), ${holoStops()});
-    animation: gvspin 6s linear infinite; }
-  .card::after { filter: blur(16px); opacity: .45; inset: -4px; }
-  .card:hover::before, .card:hover::after { animation-duration: 2.2s; }
-  .card:hover::after { opacity: .7; }
+  .card { position: relative; background: #0e1424; border: 2px solid rgb(0 0 0 / 0.6);
+          border-radius: 18px; padding: 24px; margin-top: 22px;
+          background-image: radial-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px);
+          background-size: 10px 10px;
+          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09); }
+  .card::before { content: ""; position: absolute; inset: -3px; border-radius: 20px; z-index: -1;
+    background: conic-gradient(from var(--gvang), ${conicStops(config.holoColors)});
+    animation: gvspin 9s linear infinite; }
+  .card:hover::before { animation-duration: 3s; }
 
   label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em;
           color: #94a3b8; margin: 14px 0 6px; transition: color .2s ease; }
@@ -564,22 +568,23 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
   }
   input:autofill { color: #f8fafc; }
 
-  button { position: relative; margin-top: 18px; width: 100%; color: #fff; font-weight: 800; font-size: 15px;
-           letter-spacing: .01em; border: 0; border-radius: 12px; padding: 14px; cursor: pointer;
-           background: linear-gradient(120deg, #6366f1, #8b5cf6, #22d3ee, #6366f1); background-size: 300% 100%;
+  button { position: relative; margin-top: 18px; width: 100%; color: #0b0d11; font-weight: 800; font-size: 15px;
+           letter-spacing: .01em; border: 2px solid rgb(0 0 0 / 0.6); border-radius: 12px; padding: 14px; cursor: pointer;
+           background: linear-gradient(120deg, ${linearStops(config.holoColors)}); background-size: 300% 100%;
            animation: gvstream 6s linear infinite;
-           box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 10px 30px -10px #6366f1aa;
+           box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 10px 30px -10px rgb(0 0 0 / .6);
            transition: transform .12s ease, box-shadow .2s ease; }
   @keyframes gvstream { to { background-position: 300% 0; } }
-  button:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 16px 40px -12px #6366f1dd; animation-duration: 2.5s; }
-  button:active { transform: translateY(0) scale(.985); box-shadow: inset 0 2px 6px rgb(0 0 0 / .35); }
+  button:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 16px 40px -12px rgb(0 0 0 / .7); animation-duration: 2.5s; }
+  button:active { transform: translateY(0) scale(.985); box-shadow: inset 0 2px 6px rgb(0 0 0 / .5); }
 
-  /* Scarcity bar — spots filling in living color */
+  /* Scarcity bar — the SAME palette as the ring and button, so the
+     page tells one color story instead of three. */
   .bar { margin-top: 14px; height: 10px; border-radius: 999px; background: #0d1322; overflow: hidden;
-         box-shadow: inset 0 1px 3px rgb(0 0 0 / .5); }
+         border: 1px solid rgb(0 0 0 / 0.5); }
   .fill { height: 100%; border-radius: 999px; min-width: 6px;
-          background: linear-gradient(90deg, #6366f1, #22d3ee, #34d399); background-size: 200% 100%;
-          animation: gvstream 3s linear infinite; box-shadow: 0 0 12px #22d3ee88; }
+          background: linear-gradient(90deg, ${linearStops(config.holoColors)}); background-size: 200% 100%;
+          animation: gvstream 3s linear infinite; }
   .spots { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 6px; }
   .spots b { color: #a5b4fc; }
 
@@ -593,12 +598,14 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
   .kv span { word-break: break-all; color: #e2e8f0; }
   .ok { color: #34d399; } .bad { color: #f87171; }
 
-  /* The ticket — the dopamine peak: etched, ringed, shine sweeping */
-  .win { position: relative; overflow: hidden; background: #6366f126; border: 1px solid #818cf8aa;
-         border-radius: 12px; padding: 14px 18px; margin-top: 8px; font-weight: 700; text-align: center;
-         box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), 0 0 24px -6px #6366f188; }
+  /* The ticket — the dopamine peak: a bold flat poster chip (the
+     winning stop, solid — not another gradient) with a shine sweep. */
+  .win { position: relative; overflow: hidden; background: ${dots[0]}; color: #0b0d11;
+         border: 2px solid rgb(0 0 0 / 0.6); border-radius: 12px; padding: 14px 18px;
+         margin-top: 8px; font-weight: 800; text-align: center;
+         box-shadow: inset 0 1px 0 rgb(255 255 255 / .35); }
   .win::after { content: ""; position: absolute; top: 0; bottom: 0; width: 55%; left: -80%;
-    background: linear-gradient(105deg, transparent, rgb(255 255 255 / .22), transparent);
+    background: linear-gradient(105deg, transparent, rgb(255 255 255 / .45), transparent);
     animation: gvshine 3.2s ease-in-out infinite; }
   @keyframes gvshine { 0%, 55% { left: -80%; } 85%, 100% { left: 130%; } }
 
@@ -608,7 +615,7 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
              border-radius: 999px; padding: 7px 14px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .card::before, .card::after, .fill, .win::after, button { animation: none; }
+    .card::before, .fill, .win::after, button { animation: none; }
     input:focus, button, .card { transition: none; transform: none; }
   }
 </style></head><body><main>${body}

@@ -341,7 +341,7 @@ export default function ClaimPage(): React.ReactElement {
           <span className="chip bg-ink-900 text-fg-subtle">{emailMode ? "free forever" : "no email required"}</span>
           <span className="chip bg-ink-900 text-fg-subtle">every edit versioned</span>
           <span className="chip bg-ink-900 text-fg-subtle">tamper-evident</span>
-          <span className="chip bg-ink-900 text-fg-subtle">yours to self-host</span>
+          <span className="chip bg-ink-900 text-fg-subtle">{emailMode ? "premium, pay once" : "yours to self-host"}</span>
         </div>
         {/* Discover leads; claiming is the working section right below.
             Server route — hard link, not SPA. */}
@@ -469,13 +469,15 @@ export default function ClaimPage(): React.ReactElement {
       )}
 
       <footer className="mt-16 text-center text-fg-subtle text-sm max-w-xl">
-        <p className="font-semibold text-fg-muted">
-          If we can build it, you can build it.
-        </p>
-        <p className="mt-2">
-          Blocks, templates, and renderers are public extension APIs. Every built-in uses
-          the same ones. GPLv3, self-hostable, one deployment.
-        </p>
+        {emailMode ? (
+          <p className="font-semibold text-fg-muted">
+            Everything here is yours — no subscription, nothing locked away.
+          </p>
+        ) : (
+          <p className="font-semibold text-fg-muted">
+            Open by design — every block, theme, and renderer is public API. GPLv3, self-hostable.
+          </p>
+        )}
       </footer>
     </main>
     <Footer />
