@@ -506,6 +506,13 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
   /* ── The dopamine kit — pure CSS, zero JS, killed by reduced-motion ── */
   @property --gvang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
   * { margin: 0; box-sizing: border-box; }
+  /* Without this, browsers assume a LIGHT page and paint native form
+     chrome accordingly — most visibly, autofilled Name/Phone/Email
+     (exactly what this form asks for) render with a forced light
+     background and dark text no CSS override below can fully escape.
+     Declaring the scheme up front is what makes the explicit input{}
+     colors and the autofill override actually stick everywhere. */
+  :root { color-scheme: dark; }
   body { background: #070a12; color: #f8fafc; font: 16px/1.6 system-ui, -apple-system, sans-serif; min-height: 100dvh; overflow-x: clip; }
   body::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background: radial-gradient(60% 34% at 50% -4%, #6366f124, transparent 70%),
@@ -538,6 +545,24 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
     box-shadow: 0 0 0 2px #6366f1, 0 0 18px -4px #6366f1cc, 0 0 34px -8px #22d3ee88; transform: scale(1.008); }
   input:focus + label, label:has(+ input:focus) { color: #a5b4fc; }
   input:not(:placeholder-shown):valid { border-color: #34d39955; }
+  input::placeholder { color: #4b5871; }
+  /* The actual "can't read the font colors" bug: Chrome/Safari force
+     an opaque light-yellow (or system light) background + near-black
+     text onto AUTOFILLED fields, ignoring the input{} rule above —
+     and this form asks for exactly what autofill loves (name/phone/
+     email). The giant transition-delay is the standard trick: it
+     stalls the browser's own background-color transition long enough
+     that ours wins instead of flashing yellow first. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f8fafc;
+    -webkit-box-shadow: 0 0 0px 1000px #0d1322 inset;
+    box-shadow: 0 0 0px 1000px #0d1322 inset;
+    caret-color: #f8fafc;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  input:autofill { color: #f8fafc; }
 
   button { position: relative; margin-top: 18px; width: 100%; color: #fff; font-weight: 800; font-size: 15px;
            letter-spacing: .01em; border: 0; border-radius: 12px; padding: 14px; cursor: pointer;
@@ -620,9 +645,9 @@ raffles.get("/r/:id", wrap(async (req, res, next) => {
     body += `<div class="card">
 ${spotsBar}
 <form method="post" action="/r/${esc(r.raffleId)}/enter">
-  <label>Name</label><input name="name" required maxlength="80" />
-  <label>Phone</label><input name="phone" type="tel" required maxlength="30" />
-  <label>Email</label><input name="email" type="email" required maxlength="254" />
+  <label>Name</label><input name="name" autocomplete="name" required maxlength="80" />
+  <label>Phone</label><input name="phone" type="tel" autocomplete="tel" required maxlength="30" />
+  <label>Email</label><input name="email" type="email" autocomplete="email" required maxlength="254" />
   <button>Enter the giveaway</button>
   <p class="fine">We'll email you a 6-digit code to confirm your entry. By entering you share your
   name, phone, and email with @${esc(r.handle)} and agree to be contacted about this giveaway.
@@ -694,7 +719,7 @@ raffles.post("/r/:id/enter", wrap(async (req, res) => {
 <p class="sub">We sent a 6-digit code to <b>${esc(email)}</b>. Enter it here to lock your ticket:</p>
 <div class="card"><form method="post" action="/r/${esc(r.raffleId)}/confirm">
 <input type="hidden" name="pendingId" value="${esc(pendingId)}" />
-<label>6-digit code</label><input name="code" inputmode="numeric" pattern="\\d{6}" maxlength="6" required class="mono" />
+<label>6-digit code</label><input name="code" inputmode="numeric" pattern="\\d{6}" autocomplete="one-time-code" maxlength="6" required class="mono" />
 <button>Confirm my entry</button>
 <p class="fine">The code expires in 30 minutes and works once.</p>
 </form></div>`));
