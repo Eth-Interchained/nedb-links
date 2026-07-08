@@ -101,6 +101,10 @@ export function createApp(): Express {
   // and this mount sits BEFORE /:handle, so the two never collide.
   const assetsDir = resolve(process.cwd(), process.env.LINKS_ASSETS_DIR || "public");
   app.use("/assets", express.static(assetsDir, { index: false, maxAge: "1h" }));
+  // Terminal: a missing asset is a 404, never the SPA shell.
+  app.use("/assets", (_req: Request, res: Response) => {
+    res.status(404).send("not found");
+  });
 
   // ── Editor SPA (production build) ─────────────────────────────────────────
   const dist = resolve(process.cwd(), "dist");
