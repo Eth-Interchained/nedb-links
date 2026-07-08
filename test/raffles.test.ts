@@ -210,3 +210,73 @@ test("leads: the owner's payoff — gated, complete, exportable", async () => {
   assert.ok(body.includes("ana@probe.test") && body.includes("ben@probe.test"), "both verified leads present");
   assert.ok(body.includes('"yes"'), "winner flagged in the export");
 });
+
+// ── The zero-JS path — a REAL <form method="post"> body ─────────────────────
+//
+// Every test above talks JSON, which is what fetch() sends but NOT what
+// a browser sends from an actual <form> on /r/:id — that's
+// application/x-www-form-urlencoded. This gap is exactly how the entry
+// form shipped broken end-to-end: express only had express.json()
+// mounted, so req.body was {} for every real visitor no matter what
+// they typed, surfacing as "Something's missing" / zod's "Required".
+
+function formPost(path: string, fields: Record<string, string>): Promise<Response> {
+  return fetch(`${base}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(fields).toString(),
+  });
+}
+
+test("the zero-JS entry form: real url-encoded POSTs, not JSON — this is what a browser actually sends", async () => {
+  // A second giveaway — the first is already drawn and closed above.
+  const closesAt = new Date(Date.now() + 60_000).toISOString();
+  const put = await fetch(`${base}/api/identities/${identityId}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", authorization: `Bearer ${session}` },
+    body: JSON.stringify({
+      blocks: [
+        { id: "blk_gv2", type: "giveaway", order: 0, data: { prize: "Form POST test", closesAt, winners: 1 } },
+      ],
+    }),
+  });
+  assert.equal(put.status, 200);
+  const j = (await put.json()) as { manifest: { blocks: Array<{ data: { raffleId?: string } }> } };
+  const rid = j.manifest.blocks[0].data.raffleId ?? "";
+  assert.match(rid, /^rfl_[a-f0-9]{20}$/);
+
+  const entryPage = await (await fetch(`${base}/r/${rid}`)).text();
+  assert.ok(entryPage.includes("color-scheme: dark"), "the readability fix: dark scheme declared, not left to browser default");
+  assert.ok(entryPage.includes(":-webkit-autofill"), "the readability fix: autofilled name/phone/email get an explicit override, not the browser's forced light chrome");
+
+  // The actual regression: submit the form the way a BROWSER submits
+  // it. Before the express.urlencoded() fix, this landed as "Something's
+  // missing" / "Required" no matter what was typed — req.body was {}.
+  const enterHtml = await (
+    await formPost(`/r/${rid}/enter`, { name: "Dana Real", phone: "+1 407 555 0099", email: "dana@probe.test" })
+  ).text();
+  assert.equal(enterHtml.includes("Something&#39;s missing") || enterHtml.includes("Something's missing"), false, "the entry the visitor typed must be READ — not reported missing");
+  assert.ok(enterHtml.includes("Check your inbox") || enterHtml.includes("check your inbox"), "real submission reaches the code-sent step");
+
+  const code = codeFor("dana@probe.test");
+  const pendingMatch = lastMailTo("dana@probe.test"); // sanity: mail actually fired for this entry
+  assert.ok(pendingMatch.length > 0);
+
+  // Pull the pendingId the same way a browser would have it: from the
+  // hidden field the server just rendered.
+  const pendingIdMatch = enterHtml.match(/name="pendingId" value="([^"]+)"/);
+  assert.ok(pendingIdMatch, "confirm form carries the pending id");
+
+  const confirmHtml = await (
+    await formPost(`/r/${rid}/confirm`, { pendingId: pendingIdMatch![1], code })
+  ).text();
+  assert.ok(confirmHtml.includes("You're in"), "real form-encoded confirm actually redeems a ticket");
+  const ticketMatch = confirmHtml.match(/class="win mono">(tkt_[a-f0-9]+)</);
+  assert.ok(ticketMatch, "a real ticket id renders back to the browser");
+
+  // And it's really persisted — the owner's leads reflect the same entry.
+  const leads = (await (await fetch(`${base}/api/raffles/${rid}/leads`, { headers: { authorization: `Bearer ${session}` } })).json()) as {
+    leads: Array<{ email: string; ticketId: string }>;
+  };
+  assert.ok(leads.leads.some((l) => l.email === "dana@probe.test" && l.ticketId === ticketMatch![1]), "the form-submitted entry is the SAME record the owner sees");
+});
