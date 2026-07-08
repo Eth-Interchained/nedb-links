@@ -94,6 +94,19 @@ export function createApp(): Express {
   app.use("/api/preview", preview);
   app.use("/api/upload", uploads);
 
+  // ── Deployment brand files (/brand) ───────────────────────────────────────
+  // Static files for the storefront: logo, favicon, og images.
+  // LINKS_ASSETS_DIR (default ./public), served at /brand/<name>.
+  // NOT /assets — Vite owns /assets for the SPA bundles (dist/assets/);
+  // squatting there blackholed index-*.js and white-screened the app.
+  // "brand" is a reserved handle; this mount sits before /:handle.
+  const brandDir = resolve(process.cwd(), process.env.LINKS_ASSETS_DIR || "public");
+  app.use("/brand", express.static(brandDir, { index: false, maxAge: "1h" }));
+  // Terminal: a missing brand file is a 404, never the SPA shell.
+  app.use("/brand", (_req: Request, res: Response) => {
+    res.status(404).send("not found");
+  });
+
   // ── Editor SPA (production build) ─────────────────────────────────────────
   const dist = resolve(process.cwd(), "dist");
   const hasDist = existsSync(join(dist, "index.html"));

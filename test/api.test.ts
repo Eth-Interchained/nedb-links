@@ -18,6 +18,14 @@ import type { Server } from "node:http";
 process.env.NEDB_DB = `links_test_${Date.now().toString(36)}`;
 delete process.env.LINKS_ADMIN_TOKEN; // open mode; auth is covered in auth.test.ts
 
+// Deployment assets: point /assets at a scratch dir with a probe file.
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+const assetsDir = mkdtempSync(join(tmpdir(), "links-assets-"));
+writeFileSync(join(assetsDir, "probe.png"), "not-really-a-png-and-that-is-fine");
+process.env.LINKS_ASSETS_DIR = assetsDir;
+
 const { createApp, ensureDatabase } = await import("../src/server/app");
 const { db } = await import("../src/server/db");
 const { deriveAccount, generatePhrase, signMessage } = await import("../src/lib/wallet");
@@ -430,6 +438,17 @@ test("identityType refiles after claim — the Discover chips follow", async () 
     headers: authed(),
     body: JSON.stringify({ identityType: "business", discoverable: false }),
   });
+});
+
+test("/brand serves deployment files — and never shadows Vite's /assets", async () => {
+  const r = await fetch(`${base}/brand/probe.png`);
+  assert.equal(r.status, 200, "static mount answers");
+  assert.equal(await r.text(), "not-really-a-png-and-that-is-fine");
+  const missing = await fetch(`${base}/brand/nope.png`);
+  assert.equal(missing.status, 404, "missing brand files 404 clean");
+  // 'brand' is an unclaimable handle; Vite keeps /assets untouched.
+  const avail = (await (await fetch(`${base}/api/handles/brand/availability`)).json()) as { available: boolean };
+  assert.equal(avail.available, false, "'brand' is reserved");
 });
 
 test("the engine verifies the whole database tamper-evident", async () => {
