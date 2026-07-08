@@ -185,8 +185,9 @@ export function UpgradeCard({ onUnlocked }: { onUnlocked?: () => void }): React.
 
       {error && <p className="mt-4 text-signal-red text-sm text-center font-mono">{error}</p>}
       <p className="mt-5 text-[11px] text-fg-subtle text-center">
-        Self-hosting {cfg?.brandName ?? "NEDB Links"}? Your own instance is unlimited,
-        free, GPLv3. This supports the hosted service.
+        {emailMode
+          ? "One-time payment. No subscription, ever."
+          : `Self-hosting? Your own instance runs unlimited, free, GPLv3.`}
       </p>
     </div>
   );

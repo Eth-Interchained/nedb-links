@@ -421,7 +421,10 @@ test("brand assets thread through the public page when the deployment has them",
   // Undressed deployments keep the defaults: ⬡ and the rainbow.
   const plain = renderProfileHtml(m, CTX);
   assert.ok(plain.includes("<b>⬡</b>"), "wordmark glyph without a logo");
-  assert.ok(plain.includes("#6366f1, #22d3ee"), "default ring without brand colors");
+  // The pop-art default: a tight hot-pink/gold/electric-blue trio,
+  // NOT the old five-hue rainbow (the "clown wheel" Mark killed).
+  assert.ok(plain.includes("#ec4899, #fbbf24, #3b82f6, #ec4899"), "default ring is the pop-art trio, closed loop");
+  assert.equal(plain.includes("#6366f1, #22d3ee, #34d399"), false, "the rainbow wheel is gone");
   assert.equal(plain.includes("rel=\"icon\""), false, "no favicon link unless configured");
 });
 
