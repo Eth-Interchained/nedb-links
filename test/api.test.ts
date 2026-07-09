@@ -461,7 +461,8 @@ test("/demo renders the finished page through the real pipeline; routes stay res
   const r = await fetch(`${base}/demo`);
   assert.equal(r.status, 200, "the demo page is public");
   const html = await r.text();
-  assert.match(html, /Maya Reyes/, "the demo identity renders");
+  assert.match(html, /Mint on the Avenue/, "the demo is the real flagship salon");
+  assert.match(html, /@mintontheavenue/, "handle renders — everything @mintontheavenue");
   assert.match(html, /Save contact/, "the save-my-contact surface is on");
   assert.match(html, /Book an appointment/, "client-shaped content, not dev-shaped");
 
