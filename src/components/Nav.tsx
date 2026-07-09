@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Link } from "@interchained/portal-react";
 import { Crown } from "lucide-react";
 
-import { getAddress, getEmail, onSessionChanged, signOut } from "../lib/api";
+import { getAddress, getEmail, onSessionChanged } from "../lib/api";
 import { useAppConfig } from "../lib/useAppConfig";
 import { useBillingStatus } from "../lib/useBillingStatus";
 import { requestUpgrade } from "../lib/upgrade";
+import { NavMenu } from "./NavMenu";
 import { PremiumStatusModal } from "./PremiumModals";
 import { SubNav } from "./SubNav";
 import { UpgradeModal } from "./UpgradeModal";
@@ -139,28 +140,27 @@ export function Nav({
               ✨ Premium
             </button>
           )}
-          {actions ?? (
-            <Link href="/" className="btn btn-primary !py-1.5 !px-3.5">
-              Claim
-            </Link>
-          )}
-          {address && (
-            <div className="hidden md:flex items-center gap-2">
-              <span
-                className={`chip text-[11px] text-fg-muted ${email ? "" : "font-mono"}`}
-                title={email ?? address}
-              >
-                {email ?? shortAddr(address)}
-              </span>
-              <button
-                onClick={signOut}
-                className="text-fg-subtle hover:text-signal-red transition text-xs font-medium"
-                title="Sign out"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
+          {/* Signed out: the Claim hero — the product's front door.
+              Signed in: the nav gets QUIETER — Claim retires (it lives
+              on the dashboard and in the menu) and "everything else"
+              folds into the hamburger: identity, nav links (finally
+              reachable on phones), premium, sign out. Pages that
+              project actions (the editor) still own this slot. */}
+          {actions ??
+            (address ? (
+              <NavMenu
+                who={email ?? shortAddr(address)}
+                premium={billing?.unlimited ? "premium" : "free"}
+                showPremium={Boolean(cfg?.limitEnabled && billing)}
+                onPremium={() =>
+                  billing?.unlimited ? setShowStatus(true) : requestUpgrade("generic")
+                }
+              />
+            ) : (
+              <Link href="/" className="btn btn-primary !py-1.5 !px-3.5">
+                Claim
+              </Link>
+            ))}
         </div>
       </div>
       <SubNav />

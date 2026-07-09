@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "@interchained/portal-react";
-import { Contact, Eye, LogOut, MousePointerClick, QrCode } from "lucide-react";
+import { Contact, Eye, MousePointerClick, QrCode } from "lucide-react";
 
-import { getEmail, getJson, getToken, onSessionChanged, signOut } from "../lib/api";
+import { getJson, getToken, onSessionChanged } from "../lib/api";
 import { fmtCount } from "../lib/format";
 
 /**
@@ -71,13 +71,11 @@ function useScrollDuck(): boolean {
 export function SubNav(): React.ReactElement | null {
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [signedIn, setSignedIn] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
   const ducked = useScrollDuck();
 
   const load = useCallback(() => {
     const has = Boolean(getToken());
     setSignedIn(has);
-    setEmail(getEmail());
     if (!has) {
       setSummary(null);
       return;
@@ -152,14 +150,9 @@ export function SubNav(): React.ReactElement | null {
               Full stats →
             </Link>
           )}
-          <button
-            onClick={signOut}
-            className="md:hidden text-fg-subtle hover:text-signal-red transition"
-            title={email ? `Sign out (${email})` : "Sign out"}
-            aria-label="Sign out"
-          >
-            <LogOut size={14} />
-          </button>
+          {/* Sign-out lived here briefly as a mobile stopgap (the bar
+              hid the account chip below md); the NavMenu hamburger is
+              its proper home on every viewport now. */}
         </div>
       </div>
     </div>
