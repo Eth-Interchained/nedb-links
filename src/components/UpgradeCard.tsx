@@ -61,6 +61,9 @@ export function UpgradeCard({ onUnlocked }: { onUnlocked?: () => void }): React.
       const cents = custom ? Math.round(Number(custom) * 100) : amount;
       const j = await postJson<{ url: string }>("/api/billing/checkout", {
         amountCents: cents,
+        // Land back where the buyer was standing — an upgrade mid-edit
+        // must never navigate someone away from their work (Marisa, 7/8).
+        returnTo: window.location.pathname,
       });
       window.location.href = j.url;
     } catch (err) {
