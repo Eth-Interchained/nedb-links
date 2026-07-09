@@ -114,7 +114,24 @@ billing.get("/status", requireUser, wrap(async (_req, res) => {
   });
 }));
 
-/** POST /api/billing/checkout { amountCents } — pay what you want, once. */
+/**
+ * Where should Stripe land the buyer afterwards? Same-origin PATH only —
+ * never a foreign origin, never a protocol, never a hash. Anything
+ * suspicious falls back to /identities. Exported for unit tests.
+ *
+ * This exists because Marisa upgraded MID-EDIT and the hard-coded
+ * /identities success_url navigated her away from unsaved work. The
+ * checkout now returns you to where you were standing.
+ */
+export function safeReturnPath(p: string | undefined, fallback = "/identities"): string {
+  if (!p || !p.startsWith("/") || p.startsWith("//")) return fallback;
+  if (p.includes("\\") || p.includes("://")) return fallback;
+  const path = p.split(/[?#]/)[0];
+  return path.length > 1 && path.length <= 200 ? path : fallback;
+}
+
+/** POST /api/billing/checkout { amountCents, returnTo? } — pay what you
+ *  want, once; land back where you were standing. */
 billing.post("/checkout", requireUser, wrap(async (req, res) => {
   const auth = authOf(res);
   if (!auth || auth.isOperator) {
@@ -126,7 +143,10 @@ billing.post("/checkout", requireUser, wrap(async (req, res) => {
     return;
   }
   const body = z
-    .object({ amountCents: z.number().int().min(config.pwywMinCents).max(50_000) })
+    .object({
+      amountCents: z.number().int().min(config.pwywMinCents).max(50_000),
+      returnTo: z.string().max(300).optional(),
+    })
     .safeParse(req.body);
   if (!body.success) {
     res.status(400).json({
@@ -154,8 +174,8 @@ billing.post("/checkout", requireUser, wrap(async (req, res) => {
       },
     ],
     metadata: { address: auth.address },
-    success_url: `${origin}/identities?upgraded=1`,
-    cancel_url: `${origin}/identities`,
+    success_url: `${origin}${safeReturnPath(body.data.returnTo)}?upgraded=1`,
+    cancel_url: `${origin}${safeReturnPath(body.data.returnTo)}`,
   });
   res.json({ url: session.url });
 }));

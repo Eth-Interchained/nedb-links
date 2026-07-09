@@ -30,13 +30,14 @@ import { BackgroundPicker } from "../../src/components/BackgroundPicker";
 import { Nav } from "../../src/components/Nav";
 import { Gate } from "../../src/components/Gate";
 import { Footer } from "../../src/components/Footer";
+import { PremiumWelcomeModal } from "../../src/components/PremiumModals";
 import "../../src/lib/blocks/builtin";
 import "../../src/lib/templates/builtin";
 import { ApiError, adminHeaders, fetchPreviewHtml, getJson, postJson, putJson } from "../../src/lib/api";
 import type { BackgroundConfig } from "../../src/lib/background";
 import { dragTarget, moveItem, siblingShift } from "../../src/lib/dragReorder";
 import { requestUpgrade } from "../../src/lib/upgrade";
-import { useBillingStatus } from "../../src/lib/useBillingStatus";
+import { notifyBillingChanged, useBillingStatus } from "../../src/lib/useBillingStatus";
 import { BRAND_IDS, SOC_PREFIX, brandGlyph } from "../../src/lib/renderers/social-icons";
 import { FONTS, newBlockId, type Block, type FontId, type IdentityManifest, type IdentityType } from "../../src/lib/identity";
 import { listBlocks } from "../../src/lib/registry";
@@ -588,6 +589,38 @@ function ThemeMini({ palette }: { palette: { bg: string; card: string; text: str
   );
 }
 
+// ── Draft safety net ──────────────────────────────────────────────────────────
+// Every edit lands in localStorage on a short fuse. Checkout round-trips,
+// tab closes, and crashes can no longer eat work (Marisa lost an editing
+// session to the Stripe redirect, 7/8 — never again). Cleared on save.
+
+const DRAFT_PREFIX = "links-draft:";
+
+interface LocalDraft {
+  at: string;
+  manifest: IdentityManifest;
+}
+
+function readDraft(id: string): LocalDraft | null {
+  try {
+    const raw = localStorage.getItem(`${DRAFT_PREFIX}${id}`);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as Partial<LocalDraft>;
+    if (typeof d.at !== "string" || !d.manifest || d.manifest.identityId !== id) return null;
+    return d as LocalDraft;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(id: string): void {
+  try {
+    localStorage.removeItem(`${DRAFT_PREFIX}${id}`);
+  } catch {
+    /* nothing to clear */
+  }
+}
+
 // ── The editor ────────────────────────────────────────────────────────────────
 
 export default function EditPage(): React.ReactElement {
@@ -616,6 +649,10 @@ export default function EditPage(): React.ReactElement {
   /** Hover try-on for backgrounds — previewed, never saved. */
   const [bgHover, setBgHover] = useState<BackgroundConfig | null>(null);
   const previewSeq = useRef(0);
+  /** Set when a local draft was auto-restored — the banner's timestamp. */
+  const [restoredAt, setRestoredAt] = useState<string | null>(null);
+  /** Landing back from a mid-edit upgrade (?upgraded=1). */
+  const [justUpgraded, setJustUpgraded] = useState(false);
 
   const blockDefs = useMemo(() => listBlocks(), []);
 
@@ -624,8 +661,29 @@ export default function EditPage(): React.ReactElement {
     setLocked(false);
     try {
       const j = await getJson<{ manifest: IdentityManifest }>(`/api/identities/${encodeURIComponent(id)}`);
-      setManifest(j.manifest);
-      setDirty(false);
+      const draft = readDraft(id);
+      if (draft && draft.at > (j.manifest.updatedAt ?? "")) {
+        // Newer local work exists — restore the EDITABLE fields onto the
+        // server's authoritative shell (handle/status/timestamps stay real).
+        setManifest({
+          ...j.manifest,
+          displayName: draft.manifest.displayName,
+          bio: draft.manifest.bio,
+          avatar: draft.manifest.avatar,
+          theme: draft.manifest.theme,
+          themeCustom: draft.manifest.themeCustom,
+          background: draft.manifest.background,
+          discoverable: draft.manifest.discoverable,
+          identityType: draft.manifest.identityType,
+          blocks: draft.manifest.blocks,
+        });
+        setDirty(true);
+        setRestoredAt(draft.at);
+      } else {
+        if (draft) clearDraft(id); // the server moved past it — draft lost
+        setManifest(j.manifest);
+        setDirty(false);
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setLocked(true);
@@ -648,6 +706,33 @@ export default function EditPage(): React.ReactElement {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
+
+  // The draft safety net — dirty work lands in localStorage on a short
+  // fuse, so no navigation (Stripe included) can eat an editing session.
+  useEffect(() => {
+    if (!manifest || !dirty) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          `${DRAFT_PREFIX}${id}`,
+          JSON.stringify({ at: new Date().toISOString(), manifest }),
+        );
+      } catch {
+        /* storage unavailable — the Save button still works */
+      }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [manifest, dirty, id]);
+
+  // Landing back from a mid-edit upgrade: strip the param (refresh must
+  // not re-celebrate), refresh billing everywhere (the save that was
+  // walled a minute ago now clears), and greet the purchase properly.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("upgraded") !== "1") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    notifyBillingChanged();
+    setJustUpgraded(true);
+  }, []);
 
   // Live preview — debounced round-trip through the REAL renderer.
   // Hovering a background preset swaps it in transiently on a shorter
@@ -859,6 +944,8 @@ export default function EditPage(): React.ReactElement {
       setManifest(j.manifest);
       setReceipt({ seq: j.seq, head: j.head });
       setDirty(false);
+      clearDraft(id); // saved for real — the safety net stands down
+      setRestoredAt(null);
       return true;
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -866,7 +953,13 @@ export default function EditPage(): React.ReactElement {
       } else if (err instanceof ApiError && err.code === "premium_required") {
         // A premium wall is a doorway, not an error toast.
         const msg = err.message.toLowerCase();
-        requestUpgrade(msg.includes("giveaway") ? "giveaway" : msg.includes("discover") ? "discover" : msg.includes("font") ? "font" : "generic");
+        requestUpgrade(
+          msg.includes("giveaway") ? "giveaway"
+            : msg.includes("discover") ? "discover"
+            : msg.includes("font") ? "font"
+            : msg.includes("block") ? "blocks"
+            : "generic",
+        );
         setError(err.message);
       } else {
         setError(err instanceof Error ? err.message : "save failed");
@@ -875,7 +968,7 @@ export default function EditPage(): React.ReactElement {
     } finally {
       setBusy(null);
     }
-  }, [manifest]);
+  }, [manifest, id]);
 
   const publish = useCallback(async () => {
     if (!manifest) return;
@@ -1004,7 +1097,28 @@ export default function EditPage(): React.ReactElement {
         />
       )}
 
+      {justUpgraded && <PremiumWelcomeModal onClose={() => setJustUpgraded(false)} />}
+
       <main className="max-w-7xl mx-auto px-5 py-8">
+        {restoredAt && (
+          <div className="mb-4 panel !border-signal-amber/40 bg-signal-amber/10 px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+            <span className="font-semibold text-signal-amber">
+              Restored unsaved changes from{" "}
+              {new Date(restoredAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </span>
+            <span className="text-fg-muted">— Save to keep them.</span>
+            <button
+              onClick={() => {
+                clearDraft(id);
+                setRestoredAt(null);
+                void load();
+              }}
+              className="ml-auto text-xs font-semibold text-fg-subtle hover:text-signal-red transition"
+            >
+              Discard restored changes
+            </button>
+          </div>
+        )}
         {/* Engine receipt — provenance made visible, quietly */}
         {receipt && (
           <p className="mb-4 flex items-center gap-1.5 font-mono text-[11px] text-fg-subtle" title={receipt.head}>

@@ -210,3 +210,21 @@ test("premium lifts the block cap — same page, fourth block welcome", async ()
   });
   assert.equal(r.status, 200, "six blocks save fine once premium");
 });
+
+test("safeReturnPath: same-origin paths pass, everything shady falls back", async () => {
+  const { safeReturnPath } = await import("../src/server/billing");
+  // The legit case this exists for: returning to a mid-edit editor.
+  assert.equal(safeReturnPath("/edit/idn_abc123"), "/edit/idn_abc123");
+  assert.equal(safeReturnPath("/identities"), "/identities");
+  // Queries and hashes are stripped — the server appends its own params.
+  assert.equal(safeReturnPath("/edit/idn_x?tab=blocks#top"), "/edit/idn_x");
+  // Shady inputs: foreign origins, protocol smuggling, backslashes, junk.
+  assert.equal(safeReturnPath("https://evil.example/phish"), "/identities");
+  assert.equal(safeReturnPath("//evil.example"), "/identities");
+  assert.equal(safeReturnPath("/redirect\\evil"), "/identities");
+  assert.equal(safeReturnPath("/x://y"), "/identities");
+  assert.equal(safeReturnPath("no-leading-slash"), "/identities");
+  assert.equal(safeReturnPath(undefined), "/identities");
+  assert.equal(safeReturnPath("/"), "/identities");
+  assert.equal(safeReturnPath(`/${"a".repeat(300)}`), "/identities");
+});
