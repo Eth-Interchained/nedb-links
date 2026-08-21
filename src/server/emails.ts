@@ -614,6 +614,8 @@ export function productClaimEmail(opts: {
   reference: string;
   buyerEmail: string;
   handle: string;
+  /** Bookings: the time they picked. Held, not confirmed. */
+  slot?: string;
 }): OutgoingMail {
   const amount = `₹${opts.price.toFixed(2).replace(/\.00$/, "")}`;
   const html = shell({
@@ -626,7 +628,7 @@ export function productClaimEmail(opts: {
         { center: true },
       ),
       paragraph(
-        `UPI reference: <b>${esc(opts.reference)}</b>`,
+        `UPI reference: <b>${esc(opts.reference)}</b>${opts.slot ? `<br />Slot held: <b>${esc(opts.slot)}</b>` : ""}`,
         { center: true, muted: true },
       ),
       divider(),
@@ -647,6 +649,7 @@ export function productClaimEmail(opts: {
       `Product: ${opts.title}`,
       `Amount:  ${amount}`,
       `Ref:     ${opts.reference}`,
+      ...(opts.slot ? [`Slot:    ${opts.slot} (held, not yet confirmed)`] : []),
       `Buyer:   ${opts.buyerEmail}`,
       "",
       "Nothing here is verified — check the reference against your own bank,",
@@ -662,17 +665,23 @@ export function productDeliveryEmail(opts: {
   title: string;
   deliverable: string;
   handle: string;
+  /** Bookings: the confirmed time. Restated so the buyer has it in writing. */
+  slot?: string;
 }): OutgoingMail {
   const html = shell({
-    preheader: `Your download for ${opts.title} is ready.`,
+    preheader: opts.slot
+      ? `Your booking for ${opts.title} is confirmed — ${opts.slot}.`
+      : `Your download for ${opts.title} is ready.`,
     kicker: "payment confirmed",
     content: [
-      heading("Here's your download"),
+      heading(opts.slot ? "You're booked in" : "Here's your download"),
       paragraph(
-        `@${esc(opts.handle)} confirmed your payment for <b>${esc(opts.title)}</b>. It's all yours:`,
+        opts.slot
+          ? `@${esc(opts.handle)} confirmed your payment for <b>${esc(opts.title)}</b>.<br />Your time: <b>${esc(opts.slot)}</b>`
+          : `@${esc(opts.handle)} confirmed your payment for <b>${esc(opts.title)}</b>. It's all yours:`,
         { center: true },
       ),
-      button("Get it now", opts.deliverable),
+      button(opts.slot ? "Join the call" : "Get it now", opts.deliverable),
       fallbackUrl(opts.deliverable),
       divider(),
       paragraph(
@@ -684,14 +693,15 @@ export function productDeliveryEmail(opts: {
   });
   return {
     to: opts.to,
-    subject: `Your download — ${opts.title}`,
+    subject: opts.slot ? `Booking confirmed — ${opts.title}, ${opts.slot}` : `Your download — ${opts.title}`,
     html,
     text: [
-      `${BRAND_UP} — YOUR DOWNLOAD IS READY`,
+      opts.slot ? `${BRAND_UP} — YOUR BOOKING IS CONFIRMED` : `${BRAND_UP} — YOUR DOWNLOAD IS READY`,
       "",
       `@${opts.handle} confirmed your payment for ${opts.title}.`,
+      ...(opts.slot ? [`Your time: ${opts.slot}`] : []),
       "",
-      `Get it: ${opts.deliverable}`,
+      `${opts.slot ? "Join" : "Get it"}: ${opts.deliverable}`,
       "",
       "Save this email — it's your copy of the link.",
     ].join("\n"),

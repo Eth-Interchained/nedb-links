@@ -101,6 +101,13 @@ function blockSummary(b: Block): string {
         ? `${str(d.vpa)} · ₹${amt}`
         : `${str(d.vpa)} · payer chooses`;
     }
+    case "booking": {
+      const slots = Array.isArray(d.slots) ? d.slots.length : 0;
+      if (!str(d.vpa)) return "add your UPI ID to take bookings";
+      if (!slots) return "add at least one time slot";
+      if (!str(d.deliverable)) return "add the meeting link";
+      return `₹${Number(d.price) || 0} · ${slots} slot${slots === 1 ? "" : "s"} offered`;
+    }
     case "product": {
       if (!str(d.vpa)) return "add your UPI ID to sell this";
       if (!str(d.deliverable)) return "add the delivery link before you sell";
@@ -133,6 +140,7 @@ function blockTitle(b: Block, fallback: string): string {
     case "giveaway":
       return str(d.prize) || fallback;
     case "product":
+    case "booking":
       return str(d.title) || fallback;
     case "link":
       return str(d.label) || fallback;
@@ -838,6 +846,130 @@ function BlockFields({
             />
             <p className="text-[11px] text-fg-subtle mt-1.5">
               Already typed when the chat opens — it qualifies the lead before they say a word.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    case "booking": {
+      const price = Number(d.price);
+      const slots = Array.isArray(d.slots) ? (d.slots as unknown[]).map((x) => String(x ?? "")) : [];
+      const setSlots = (next: string[]) => onChange({ ...d, slots: next });
+      return (
+        <div className="grid gap-3">
+          <div className="grid sm:grid-cols-[2fr_1fr_1fr] gap-3">
+            <div>
+              <label className="label">What are you offering?</label>
+              <input
+                className="field"
+                placeholder="1:1 Design Review"
+                value={str(d.title)}
+                onChange={(e) => onChange({ ...d, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">How long</label>
+              <input
+                className="field"
+                placeholder="45 mins"
+                value={str(d.duration)}
+                onChange={(e) => onChange({ ...d, duration: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Price (₹)</label>
+              <input
+                className="field"
+                inputMode="decimal"
+                value={Number.isFinite(price) && price > 0 ? String(price) : ""}
+                onChange={(e) => {
+                  const n = Number(e.target.value.replace(/[^\d.]/g, ""));
+                  onChange({ ...d, price: Number.isFinite(n) ? n : 0 });
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">One line about it</label>
+            <input
+              className="field"
+              placeholder="Portfolio teardown over a call"
+              value={str(d.blurb)}
+              onChange={(e) => onChange({ ...d, blurb: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="label">Times you're offering</label>
+            <div className="grid gap-2">
+              {slots.map((sl, i) => (
+                <div key={i} className="grid grid-cols-[1fr_36px] gap-2">
+                  <input
+                    className="field"
+                    placeholder="Mon 25 Aug, 6:00 PM"
+                    value={sl}
+                    onChange={(e) => setSlots(slots.map((x, j) => (j === i ? e.target.value : x)))}
+                  />
+                  <button
+                    onClick={() => setSlots(slots.filter((_, j) => j !== i))}
+                    className="icon-btn icon-btn-danger self-center"
+                    title="Remove"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setSlots([...slots, ""])}
+                className="justify-self-start text-xs font-semibold text-accent-soft hover:underline underline-offset-4"
+              >
+                + add a time
+              </button>
+            </div>
+            {/* Free text on purpose: parsing dates would mean owning
+                timezones and DST, and getting those subtly wrong means
+                missing a call someone paid for. */}
+            <p className="text-[11px] text-fg-subtle mt-1.5">
+              Write them however your clients read them. Each time can be booked once — it disappears
+              from your page as soon as someone claims it.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-[2fr_1fr] gap-3">
+            <div>
+              <label className="label">Your UPI ID (where the money lands)</label>
+              <input
+                className="field font-mono"
+                placeholder="yourname@okhdfcbank"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={str(d.vpa)}
+                onChange={(e) => onChange({ ...d, vpa: e.target.value.trim() })}
+              />
+            </div>
+            <div>
+              <label className="label">Payee name</label>
+              <input
+                className="field"
+                placeholder="Your name"
+                value={str(d.payeeName)}
+                onChange={(e) => onChange({ ...d, payeeName: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">Meeting link (https)</label>
+            <input
+              className="field font-mono"
+              placeholder="https://meet.google.com/..."
+              value={str(d.deliverable)}
+              onChange={(e) => onChange({ ...d, deliverable: e.target.value.trim() })}
+            />
+            <p className="text-[11px] text-fg-subtle mt-1.5 leading-relaxed">
+              <b className="text-fg-muted">Never shown publicly.</b> Sent only after you confirm the
+              payment landed in your bank. Money goes straight to your UPI — we&apos;re not in the
+              transaction and take no fee.
             </p>
           </div>
         </div>

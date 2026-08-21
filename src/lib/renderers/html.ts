@@ -306,6 +306,25 @@ function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
   <i class="upia">₹${esc(price.toFixed(2).replace(/\.00$/, ""))}</i>
 </a>`;
     }
+    case "booking": {
+      // Same destination as a product — the buy page owns slot choice,
+      // payment and the claim. The card's job is just to say what it is
+      // and what it costs.
+      const price = typeof d.price === "number" ? d.price : Number(d.price);
+      const slots = Array.isArray(d.slots) ? (d.slots as unknown[]).filter(Boolean) : [];
+      if (!d.title || !Number.isFinite(price) || price <= 0 || !productUpiHref(d)) return "";
+      // No slots left means nothing to sell; showing the card anyway would
+      // walk someone to a dead end after they'd already decided to buy.
+      if (!slots.length) return "";
+      const meta = [String(d.duration ?? "").trim(), `${slots.length} time${slots.length === 1 ? "" : "s"} open`]
+        .filter(Boolean)
+        .join(" · ");
+      return `<a class="lk prod" href="${esc(origin)}/buy/${esc(m.identityId)}/${esc(b.id)}" rel="noopener">
+  <span class="ic">◷</span>
+  <span><b>${esc(d.title)}</b>${meta ? `<i class="prods">${esc(meta)}</i>` : ""}</span>
+  <i class="upia">₹${esc(price.toFixed(2).replace(/\.00$/, ""))}</i>
+</a>`;
+    }
     case "gallery": {
       // The portfolio surface (Marisa's ask: "shouldn't we have some
       // photos to show our work"). Zero-JS by religion: a scroll-snap

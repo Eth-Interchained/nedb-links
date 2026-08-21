@@ -56,6 +56,8 @@ export interface PurchaseDoc {
   /** The buyer's assertion, not our observation. 12-digit UPI reference. */
   reference: string;
   buyerEmail: string;
+  /** Bookings only: the slot the buyer chose, in the seller's own words. */
+  slot?: string;
   status: PurchaseStatus;
   createdAt: string;
   settledAt?: string;
@@ -73,7 +75,7 @@ function throttled(key: string, max: number, windowMs: number): boolean {
   return h.n > max;
 }
 
-/** Find a product block on a published identity. Null unless both exist. */
+/** Find a sellable block (product or booking) on a published identity. */
 type Manifest = NonNullable<Awaited<ReturnType<typeof getManifest>>>;
 
 async function findProduct(
@@ -83,7 +85,9 @@ async function findProduct(
   if (!/^idn_[a-f0-9]{20}$/.test(identityId)) return null;
   const manifest = await getManifest(identityId);
   if (!manifest) return null;
-  const block = manifest.blocks.find((b) => b.id === blockId && b.type === "product");
+  const block = manifest.blocks.find(
+    (b) => b.id === blockId && (b.type === "product" || b.type === "booking"),
+  );
   return block ? { manifest, block } : null;
 }
 
@@ -104,11 +108,35 @@ async function ownerEmail(identityId: string): Promise<string | null> {
   return null;
 }
 
+/**
+ * Slots still open on a booking block.
+ *
+ * "Open" means no claim holds it that hasn't been rejected — a pending
+ * claim reserves the time. That is the deliberate call: a slot held by
+ * someone who turns out not to have paid can be freed by rejecting them,
+ * but a slot double-sold means the seller stands someone up for a call
+ * they were paid for. Reversible beats efficient here.
+ */
+async function openSlots(blockId: string, all: unknown): Promise<string[]> {
+  const declared = Array.isArray(all) ? all.map((x) => String(x ?? "").trim()).filter(Boolean) : [];
+  if (!declared.length) return [];
+  const rows = (await db.query(
+    `FROM ${COLLECTIONS.purchases} WHERE blockId = "${blockId}" LIMIT 1000`,
+  )) as unknown as PurchaseDoc[];
+  const held = new Set(
+    rows.filter((r) => r.status !== "rejected" && r.slot).map((r) => String(r.slot)),
+  );
+  return declared.filter((sl) => !held.has(sl));
+}
+
 const claimSchema = z.object({
   // UPI reference numbers are 12 digits. Accept 8–24 so a bank that
   // formats differently doesn't lock an honest buyer out of claiming.
   reference: z.string().trim().regex(/^[A-Za-z0-9]{8,24}$/, "that doesn't look like a UPI reference number"),
   email: z.string().trim().toLowerCase().email().max(254),
+  /** Bookings only — validated against the block's real slot list below,
+   *  never trusted as free text. */
+  slot: z.string().trim().max(80).optional(),
 });
 
 // ── Public, zero-JS buy page ────────────────────────────────────────────────
@@ -127,13 +155,46 @@ purchases.get("/buy/:identityId/:blockId", wrap(async (req, res, next) => {
   }
   const price = Number(d.price);
   const back = `/${esc(found.manifest.handle)}`;
+  const isBooking = found.block.type === "booking";
+  const free = isBooking ? await openSlots(found.block.id, d.slots) : [];
+  if (isBooking && !free.length) {
+    res.send(
+      pageShell(
+        String(d.title ?? "Fully booked"),
+        `<h1>Fully booked</h1>
+<p class="sub">Every time for <b>${esc(d.title)}</b> is taken right now. Check back — @${esc(found.manifest.handle)} may open more.</p>
+<p class="sub"><a href="${back}">← back to @${esc(found.manifest.handle)}</a></p>`,
+      ),
+    );
+    return;
+  }
+  // ONE form wraps the whole flow. The slot radios must be inside it to
+  // submit at all, and a picker rendered outside looks interactive while
+  // silently sending nothing — so the pay link lives in here too and the
+  // steps read top to bottom in the order a buyer performs them. Radios
+  // rather than a <select>: on a phone every time is visible at a glance.
+  const step = (n: number): number => (isBooking ? n : n - 1);
   res.send(
     pageShell(
       String(d.title ?? "Buy"),
       `<h1>${esc(d.title)}</h1>
 ${d.blurb ? `<p class="sub">${esc(d.blurb)}</p>` : ""}
+<form method="post" action="/buy/${esc(found.manifest.identityId)}/${esc(found.block.id)}">
+${
+  isBooking
+    ? `<div class="card">
+  <p class="sub">Step 1 — pick your time${d.duration ? ` <span class="fine">(${esc(String(d.duration))})</span>` : ""}</p>
+  ${free
+    .map(
+      (sl, i) =>
+        `<label class="slot"><input type="radio" name="slot" value="${esc(sl)}" ${i === 0 ? "checked" : ""} required /> ${esc(sl)}</label>`,
+    )
+    .join("\n  ")}
+</div>`
+    : ""
+}
 <div class="card">
-  <p class="sub">Step 1 — pay <b>₹${esc(price.toFixed(2).replace(/\.00$/, ""))}</b> to
+  <p class="sub">Step ${step(2)} — pay <b>₹${esc(price.toFixed(2).replace(/\.00$/, ""))}</b> to
      <span class="mono">${esc(String(d.vpa))}</span></p>
   <p><a class="btn" href="${esc(pay)}">Pay with UPI</a></p>
   <p class="fine">Opens your UPI app (GPay, PhonePe, Paytm, CRED). The money goes
@@ -141,18 +202,18 @@ ${d.blurb ? `<p class="sub">${esc(d.blurb)}</p>` : ""}
      takes no fee.</p>
 </div>
 <div class="card">
-  <p class="sub">Step 2 — tell the seller you paid</p>
-  <form method="post" action="/buy/${esc(found.manifest.identityId)}/${esc(found.block.id)}">
-    <label>UPI reference number</label>
-    <input name="reference" inputmode="numeric" maxlength="24" required class="mono"
-           placeholder="12-digit ref from your UPI app" />
-    <label>Your email</label>
-    <input name="email" type="email" maxlength="254" required placeholder="where we send it" />
-    <button>I've paid — send it to me</button>
-    <p class="fine">The seller checks this reference against their own bank, then
-       releases your download. You'll get an email the moment they confirm.</p>
-  </form>
+  <p class="sub">Step ${step(3)} — tell ${isBooking ? "them" : "the seller"} you paid</p>
+  <label>UPI reference number</label>
+  <input name="reference" inputmode="numeric" maxlength="24" required class="mono"
+         placeholder="12-digit ref from your UPI app" />
+  <label>Your email</label>
+  <input name="email" type="email" maxlength="254" required placeholder="where we send it" />
+  <button>I've paid — ${isBooking ? "book my slot" : "send it to me"}</button>
+  <p class="fine">The seller checks this reference against their own bank, then
+     ${isBooking ? "confirms your booking and sends the meeting link" : "releases your download"}.
+     You'll get an email the moment they confirm.</p>
 </div>
+</form>
 <p class="sub"><a href="${back}">← back to @${esc(found.manifest.handle)}</a></p>`,
     ),
   );
@@ -181,6 +242,32 @@ purchases.post("/buy/:identityId/:blockId", wrap(async (req, res, next) => {
     return;
   }
 
+  // Bookings: the slot must be one the seller actually offered AND still
+  // free. Validated against the block, never trusted from the form — a
+  // hand-crafted POST must not be able to invent a time or take one
+  // that's already sold.
+  const isBooking = found.block.type === "booking";
+  let slot: string | undefined;
+  if (isBooking) {
+    const free = await openSlots(found.block.id, d.slots);
+    const wanted = parsed.data.slot ?? "";
+    if (!wanted || !free.includes(wanted)) {
+      res.send(
+        pageShell(
+          "That time just went",
+          `<h1>${wanted ? "That time was just taken" : "Pick a time first"}</h1>
+<p class="sub">${
+            free.length
+              ? "Someone booked it while you were paying, or it wasn't on offer. Pick another — and if you already paid, the seller will sort you out."
+              : "Every slot is taken now. If you already paid, contact the seller."
+          }</p>${backLink}`,
+        ),
+      );
+      return;
+    }
+    slot = wanted;
+  }
+
   // One claim per reference: a UPI ref identifies a single transaction, so
   // re-submitting it is a duplicate, not a second purchase. This is also
   // what stops someone spamming a seller with one number.
@@ -207,6 +294,7 @@ purchases.post("/buy/:identityId/:blockId", wrap(async (req, res, next) => {
     price: Number(d.price),
     reference: parsed.data.reference,
     buyerEmail: parsed.data.email,
+    ...(slot ? { slot } : {}),
     status: "claimed",
     createdAt: new Date().toISOString(),
   };
@@ -226,6 +314,7 @@ purchases.post("/buy/:identityId/:blockId", wrap(async (req, res, next) => {
         reference: doc.reference,
         buyerEmail: doc.buyerEmail,
         handle: doc.handle,
+        slot: doc.slot,
       }),
     ).catch((err) => console.error(`[links] claim notice failed: ${err instanceof Error ? err.message : err}`));
   }
@@ -234,8 +323,9 @@ purchases.post("/buy/:identityId/:blockId", wrap(async (req, res, next) => {
     pageShell(
       "Sent to the seller",
       `<h1>Sent ✓</h1>
-<p class="sub">The seller is checking reference <span class="mono">${esc(doc.reference)}</span> against
-   their bank. As soon as they confirm, <b>${esc(doc.buyerEmail)}</b> gets the delivery email.</p>
+<p class="sub">${doc.slot ? `Your slot <b>${esc(doc.slot)}</b> is held. ` : ""}The seller is checking reference
+   <span class="mono">${esc(doc.reference)}</span> against their bank. As soon as they confirm,
+   <b>${esc(doc.buyerEmail)}</b> gets the ${doc.slot ? "meeting link" : "delivery email"}.</p>
 <p class="fine">Nothing was charged by this site — your payment went directly to the seller's UPI address.</p>
 <p class="sub"><a href="/${esc(doc.handle)}">← back to @${esc(doc.handle)}</a></p>`,
     ),
@@ -302,6 +392,7 @@ async function settle(
           title: doc.title,
           deliverable,
           handle: doc.handle,
+          slot: doc.slot,
         }),
       );
     } catch (err) {

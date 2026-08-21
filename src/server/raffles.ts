@@ -656,10 +656,22 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
   }
   input:autofill { color: #f8fafc; }
 
+  /* Slot picker — a whole row is the tap target, because a bare radio
+     on a phone is a ~14px dot and this is the step that decides which
+     hour of someone's life gets sold. */
+  label.slot { display: flex; align-items: center; gap: 10px; margin-top: 8px;
+               padding: 12px 14px; border: 1px solid rgb(148 163 184 / .22);
+               border-radius: 12px; cursor: pointer; font-weight: 600;
+               background: rgb(148 163 184 / .05); transition: border-color .15s ease, background .15s ease; }
+  label.slot:hover { border-color: rgb(148 163 184 / .45); background: rgb(148 163 184 / .09); }
+  label.slot:has(input:checked) { border-color: #f8fafc88; background: rgb(248 250 252 / .10); }
+  label.slot input { width: 18px; height: 18px; accent-color: #f8fafc; margin: 0; flex: none; }
+  hr.sep { border: 0; border-top: 1px solid rgb(148 163 184 / .18); margin: 16px 0; }
+
   /* "a.btn" gives a LINK the same weight as a submit button — needed
      because the buy page's primary action ("Pay with UPI") is an
-     anchor to a upi:// intent, not a form submit, and the money step
-     must not read as a footnote next to the form below it. */
+     anchor to a payment-app intent link, not a form submit, and the
+     money step must not read as a footnote next to the form. */
   a.btn { display: block; text-align: center; text-decoration: none; }
   button, a.btn { position: relative; margin-top: 18px; width: 100%; color: #0b0d11; font-weight: 800; font-size: 15px;
            letter-spacing: .01em; border: 2px solid rgb(0 0 0 / 0.6); border-radius: 12px; padding: 14px; cursor: pointer;

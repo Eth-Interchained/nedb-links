@@ -25,6 +25,8 @@ export interface Purchase {
   price: number;
   reference: string;
   buyerEmail: string;
+  /** Bookings: the time the buyer picked. Held until confirmed. */
+  slot?: string;
   status: "claimed" | "delivered" | "rejected";
   createdAt: string;
   settledAt?: string;
@@ -102,6 +104,14 @@ export function SalesPanel({ identityId, canSettle }: { identityId: string; canS
                       {p.buyerEmail} · claims to have sent{" "}
                       <b className="text-fg">₹{String(p.price).replace(/\.00$/, "")}</b>
                     </p>
+                    {p.slot && (
+                      // The time is the thing the seller has to actually
+                      // show up for, so it gets its own line, not a suffix.
+                      <p className="text-xs mt-1">
+                        <span className="text-fg-subtle">slot held · </span>
+                        <b className="text-fg">{p.slot}</b>
+                      </p>
+                    )}
                   </div>
                   <span className="chip !text-[10px] font-bold uppercase tracking-wider text-signal-amber shrink-0">
                     awaiting your check
@@ -123,7 +133,7 @@ export function SalesPanel({ identityId, canSettle }: { identityId: string; canS
                       disabled={busy === p.purchaseId}
                       className="btn btn-primary !py-2.5 !text-sm"
                     >
-                      <Check size={15} /> I see it — deliver
+                      <Check size={15} /> {p.slot ? "I see it — confirm" : "I see it — deliver"}
                     </button>
                     <button
                       onClick={() => void settle(p.purchaseId, "reject")}
