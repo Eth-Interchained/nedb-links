@@ -31,6 +31,7 @@ import { qrFlyer, qrStudio } from "./qrstudio";
 import { raffles } from "./raffles";
 import { render } from "./render";
 import { uploads } from "./uploads";
+import { upiQr } from "./upiqr";
 
 export function createApp(): Express {
   const app = express();
@@ -185,6 +186,7 @@ export function createApp(): Express {
   // Discover mounts BEFORE /:handle so the directory wins the route.
   app.use(discover);
   app.use(raffles); // /r/:id pages + /api/raffles — before /:handle
+  app.use(upiQr); // /upi/:identityId/:blockId.svg — before /:handle
   app.use(purchases); // /buy/:identityId/:blockId — before /:handle
   app.use(demo); // /demo — the homepage's live "what done looks like"
   app.use(qrFlyer); // /qr/flyer/:id — print sheet, before /:handle

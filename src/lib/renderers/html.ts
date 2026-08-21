@@ -285,11 +285,21 @@ function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
           ? `<i class="upia">₹${esc(amt.toFixed(2).replace(/\.00$/, ""))}</i>`
           : "";
       const note = String(d.note ?? "").trim();
+      // Three ways to pay, because one of them only works on a phone.
+      // The intent link is mobile-only: a desktop OS has no handler for
+      // `upi:` and offers whatever it can find (Mark got WhatsApp, which
+      // really is a registered UPI app — correct of the OS, useless to
+      // him). The QR covers desktop, and the printed VPA covers both.
       return `<a class="lk upi" href="${esc(href)}" rel="noopener">
   <span class="ic">₹</span>
   <span><b>${esc(label)}</b>${note ? `<i class="upin">${esc(note)}</i>` : ""}</span>
   ${amountTag || '<span class="ar">›</span>'}
 </a>
+<details class="upiq">
+  <summary>On a computer? Scan to pay</summary>
+  <img src="${esc(origin)}/upi/${esc(m.identityId)}/${esc(b.id)}.svg"
+       alt="UPI QR code to pay ${esc(String(d.vpa))}" width="180" height="180" loading="lazy" />
+</details>
 <p class="upiv">or pay <code>${esc(String(d.vpa))}</code> from any UPI app</p>`;
     }
     case "product": {
@@ -582,6 +592,20 @@ ${fonts.link}
           white-space: nowrap; margin-left: auto; padding-left: 10px; }
   .upiv { font-size: 12px; color: ${pageSub(t)}; text-align: center;
           margin: -4px 0 12px; }
+  /* Scan-to-pay, collapsed by default: on the phones most visitors hold,
+     the intent link above already works and a 180px QR would just push
+     the rest of the page down. <details> keeps it one tap away with no
+     script at all. */
+  .upiq { margin: -2px 0 8px; text-align: center; }
+  .upiq summary { font-size: 12px; color: ${pageSub(t)}; cursor: pointer;
+                  list-style: none; padding: 6px; }
+  .upiq summary::-webkit-details-marker { display: none; }
+  .upiq summary:hover { color: ${t.accent}; }
+  /* White plate, always: a QR inverted onto a dark card scans badly on
+     many phone cameras, and this one is the difference between getting
+     paid and not. */
+  .upiq img { display: block; margin: 6px auto 2px; background: #fff;
+              border-radius: 12px; padding: 8px; width: 180px; height: 180px; }
   .prod b { display: block; }
   .prods { display: block; font-style: normal; font-weight: 500; font-size: 12px;
            color: ${t.sub}; margin-top: 2px; }

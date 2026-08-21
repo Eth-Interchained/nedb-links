@@ -197,10 +197,18 @@ ${
 <div class="card">
   <p class="sub">Step ${step(2)} — pay <b>₹${esc(price.toFixed(2).replace(/\.00$/, ""))}</b> to
      <span class="mono">${esc(String(d.vpa))}</span></p>
-  <p><a class="btn" href="${esc(pay)}">Pay with UPI</a></p>
-  <p class="fine">Opens your UPI app (GPay, PhonePe, Paytm, CRED). The money goes
-     straight to the seller's bank — this site is not part of the transaction and
-     takes no fee.</p>
+  <p><a class="btn" href="${esc(pay)}">Open my UPI app</a></p>
+  <p class="fine">On a phone this opens GPay, PhonePe, Paytm, CRED or whichever UPI
+     app you use.</p>
+  <div class="qrwrap">
+    <img class="qr" src="/upi/${esc(found.manifest.identityId)}/${esc(found.block.id)}.svg"
+         alt="UPI QR code to pay ₹${esc(price.toFixed(2).replace(/\.00$/, ""))} to ${esc(String(d.vpa))}"
+         width="180" height="180" />
+    <p class="fine">On a computer? Scan this with any UPI app on your phone.</p>
+  </div>
+  <p class="fine">Or send it manually to <span class="mono">${esc(String(d.vpa))}</span>.
+     The money goes straight to the seller's bank — this site is not part of the
+     transaction and takes no fee.</p>
 </div>
 <div class="card">
   <p class="sub">Step ${step(3)} — tell ${isBooking ? "them" : "the seller"} you paid</p>

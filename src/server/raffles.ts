@@ -656,6 +656,13 @@ ${config.faviconUrl ? `<link rel="icon" href="${esc(config.faviconUrl)}" />` : "
   }
   input:autofill { color: #f8fafc; }
 
+  /* Payment QR — white plate on purpose. A QR inverted onto a dark card
+     is unreliable to scan on many phone cameras, and this one is the
+     difference between getting paid and not. */
+  .qrwrap { margin-top: 14px; text-align: center; }
+  .qr { display: block; margin: 0 auto 8px; width: 180px; height: 180px;
+        background: #fff; border-radius: 12px; padding: 8px; }
+
   /* Slot picker — a whole row is the tap target, because a bare radio
      on a phone is a ~14px dot and this is the step that decides which
      hour of someone's life gets sold. */
