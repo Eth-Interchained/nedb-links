@@ -1,24 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowRight,
-  BadgeCheck,
-  BarChart3,
-  Check,
-  Contact,
-  Gift,
-  Globe,
-  Images,
-  IndianRupee,
-  Layers,
-  MessageCircle,
-  Palette,
-  QrCode,
-  ShoppingBag,
-  Smartphone,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { ArrowRight, BadgeCheck, Check } from "lucide-react";
 
+import { KundliHero } from "./KundliHero";
+import {
+  AIAndSmartLinks,
+  CreatorCommerce,
+  IndiaFirst,
+  KundliAnalytics,
+  KundliFAQ,
+  KundliFinalCTA,
+  KundliTemplates,
+  LeadCapture,
+  MoreThanALink,
+  SocialProof,
+  TheProblem,
+} from "./KundliSections";
 import { Nav } from "./Nav";
 import { Footer } from "./Footer";
 import { Gate } from "./Gate";
@@ -76,49 +72,6 @@ function Section({
       )}
       {children}
     </section>
-  );
-}
-
-/** The hero's converging map — the zip's scroll-canvas idea, rebuilt as
- *  ~4KB of DOM instead of 7.3MB of JPEG frames. India's mobile-first
- *  internet was the whole pitch; the hero has to honor it. */
-function ConvergenceHero({ brand }: { brand: string }): React.ReactElement {
-  const chips = [
-    { icon: MessageCircle, label: "WhatsApp", sub: "Chat with me" },
-    { icon: IndianRupee, label: "UPI", sub: "Pay or support" },
-    { icon: Images, label: "Portfolio", sub: "My work" },
-    { icon: ShoppingBag, label: "My store", sub: "Products" },
-    { icon: Contact, label: "Save contact", sub: "One tap" },
-    { icon: QrCode, label: "Vector QR", sub: "Print-grade" },
-  ];
-  return (
-    <div className="relative mt-12 w-full max-w-3xl mx-auto" aria-hidden>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {chips.map(({ icon: Icon, label, sub }, i) => (
-          <div
-            key={label}
-            className="panel px-4 py-3.5 flex items-center gap-3 animate-slide-up"
-            style={{ animationDelay: `${i * 70}ms` }}
-          >
-            <span className="w-9 h-9 rounded-xl bg-accent/10 text-accent-soft inline-flex items-center justify-center shrink-0">
-              <Icon size={16} />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold truncate">{label}</span>
-              <span className="block text-[11px] text-fg-subtle truncate">{sub}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-      {/* The converge line — everything above funnels into one handle. */}
-      <div className="flex flex-col items-center mt-6">
-        <span className="w-px h-10 bg-gradient-to-b from-transparent via-accent/40 to-accent/70" />
-        <div className="panel px-7 py-4 shadow-card-hover">
-          <span className="font-display text-2xl sm:text-3xl tracking-[0.18em] uppercase">{brand}</span>
-        </div>
-        <p className="text-[11px] text-fg-subtle mt-3 font-medium">one link · every surface</p>
-      </div>
-    </div>
   );
 }
 
@@ -226,172 +179,26 @@ export function KundliLanding(): React.ReactElement {
     <>
       <Nav />
       <main>
-        {/* ── Hero ────────────────────────────────────────────────── */}
-        <section className="w-full max-w-5xl mx-auto px-5 pt-14 pb-8 text-center">
-          <p className="kicker">your digital identity, mapped</p>
-          <h1 className="font-display text-[2.75rem] sm:text-7xl mt-4 leading-[0.98]">
-            Everything you are.
-            <br />
-            <span className="text-accent">One link.</span>
-          </h1>
-          <p className="text-fg-muted mt-5 text-lg max-w-2xl mx-auto leading-relaxed">
-            Bring your social profiles, content, portfolio, products, bookings, payments and
-            community together in one beautiful place. Built for how India connects — and ready
-            for the world.
-          </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <a href="#claim" className="btn btn-primary !py-3 !px-7 !text-base">
-              Create your {brand} <ArrowRight size={16} />
-            </a>
-            <a href="/demo" className="btn btn-secondary !py-3 !px-6">
-              See a finished page ↗
-            </a>
-          </div>
-          <ConvergenceHero brand={brand} />
-        </section>
+        {/* ── Hero — Sukuna's rig, ported: canvas frame-sequence,
+            floating chip convergence, phase labels, real CTA copy. ── */}
+        <KundliHero />
 
-        {/* ── The dilemma ─────────────────────────────────────────── */}
-        <Section
-          kicker="the digital dilemma"
-          title="Your internet is scattered."
-          lead="Everything you create, share, sell and do lives in a different app — and your audience has to hunt for it."
-        >
-          <div className="mt-10 grid sm:grid-cols-2 gap-4">
-            <div className="panel p-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-fg-subtle">
-                Scattered everywhere
-              </p>
-              <ul className="mt-4 grid gap-2 text-sm text-fg-muted">
-                {[
-                  "A bio link that only holds one thing",
-                  "DMs asking for the same booking link",
-                  "Payment details retyped a hundred times",
-                  "Work spread across four platforms",
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-2.5">
-                    <span className="text-fg-faint mt-0.5">✕</span>
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="panel p-6 !border-accent/40">
-              <p className="text-xs font-bold uppercase tracking-wider text-accent-soft">
-                Converging into one place
-              </p>
-              <ul className="mt-4 grid gap-2 text-sm text-fg-muted">
-                {[
-                  "One handle that holds all of it",
-                  "One tap to WhatsApp, booking, or pay",
-                  "One QR for the counter and the card",
-                  "One page you actually own",
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-2.5">
-                    <Check size={15} className="text-signal-green shrink-0 mt-0.5" strokeWidth={3} />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </Section>
+        {/* ── The problem, the profile, India, commerce, playbook,
+            analytics, AI, templates, social proof — all Sukuna's real
+            sections, ported from his actual .tsx source (kundli.zip),
+            not reinterpreted from the compiled dist. ─────────────── */}
+        <TheProblem />
+        <MoreThanALink />
+        <IndiaFirst />
+        <CreatorCommerce />
+        <LeadCapture />
+        <KundliAnalytics />
+        <AIAndSmartLinks />
+        <KundliTemplates />
+        <SocialProof />
 
-        {/* ── Built for India ─────────────────────────────────────── */}
-        <Section
-          id="features"
-          kicker="built for india"
-          title="Built for how India connects."
-          lead="Deeply integrated with WhatsApp, UPI and mobile-first behaviour — designed for global reach."
-        >
-          <div className="mt-10 grid sm:grid-cols-2 gap-4">
-            {[
-              {
-                Icon: MessageCircle,
-                title: "1-tap WhatsApp",
-                copy: "Start conversations instantly. No forms, no friction — visitors become client dialogues.",
-              },
-              {
-                Icon: IndianRupee,
-                title: "Instant UPI payments",
-                copy: "Get paid straight to your bank. GPay, PhonePe, Paytm and CRED, in rupees, no middlemen.",
-              },
-              {
-                Icon: QrCode,
-                title: "Print-grade vector QR",
-                copy: "Export SVG and high-res PNG for cards, merch, invoices and events — with brand colors.",
-              },
-              {
-                Icon: Smartphone,
-                title: "Mobile-first internet",
-                copy: "One small HTML page for visitors — no client JavaScript, so it opens fast on any 4G phone.",
-              },
-            ].map(({ Icon, title, copy }) => (
-              <div key={title} className="panel p-6">
-                <span className="w-10 h-10 rounded-2xl bg-accent/10 text-accent-soft inline-flex items-center justify-center">
-                  <Icon size={18} />
-                </span>
-                <h3 className="font-display text-2xl mt-4">{title}</h3>
-                <p className="text-fg-muted text-sm mt-2 leading-relaxed">{copy}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* ── What you get ────────────────────────────────────────── */}
-        <Section
-          kicker="next-gen personal ecosystem"
-          title="A link isn't enough anymore."
-          lead="Your audience expects an experience. Kundli turns your bio into a fast mobile storefront and personal mini-site."
-        >
-          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { Icon: Images, title: "Photo galleries", copy: "Show your work — a swipeable portfolio right on your page." },
-              { Icon: Gift, title: "Giveaways people trust", copy: "Run a giveaway anyone can check was honest. Every draw on the record." },
-              { Icon: BarChart3, title: "Real-time intelligence", copy: "See where your audience comes from and which links earn real intent." },
-              { Icon: Contact, title: "Save my contact", copy: "Visitors add you to their phone in one tap — name, links and all." },
-              { Icon: Palette, title: "Bespoke presets", copy: "Themes, gradients, photo backgrounds and a vault of typefaces." },
-              { Icon: Users, title: "Team access", copy: "Owners, editors and viewers — with a full record of who granted whom." },
-            ].map(({ Icon, title, copy }) => (
-              <div key={title} className="panel p-5">
-                <span className="w-9 h-9 rounded-xl bg-accent/10 text-accent-soft inline-flex items-center justify-center">
-                  <Icon size={16} />
-                </span>
-                <p className="font-semibold mt-3">{title}</p>
-                <p className="text-sm text-fg-muted mt-1.5 leading-relaxed">{copy}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* ── Commerce roadmap — labelled honestly ────────────────── */}
-        <Section
-          kicker="creator commerce · in build"
-          title="Turn attention into action."
-          lead="Digital downloads, paid bookings and direct UPI checkout — monetize without middlemen."
-        >
-          <div className="mt-8 grid sm:grid-cols-3 gap-4">
-            {[
-              { Icon: ShoppingBag, t: "Digital products", s: "Instant delivery by email" },
-              { Icon: Layers, t: "Paid bookings", s: "1:1 slots on your calendar" },
-              { Icon: Sparkles, t: "AI bio & palette", s: "Describe your craft, get a page" },
-            ].map(({ Icon, t, s }) => (
-              <div key={t} className="panel p-5 flex items-start gap-3">
-                <span className="w-9 h-9 rounded-xl bg-accent/10 text-accent-soft inline-flex items-center justify-center shrink-0">
-                  <Icon size={16} />
-                </span>
-                <span>
-                  <span className="block font-semibold text-sm">{t}</span>
-                  <span className="block text-xs text-fg-subtle mt-0.5">{s}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-[11px] text-fg-subtle mt-5">
-            Shipping next — everything above this section is live today.
-          </p>
-        </Section>
-
-        {/* ── Pricing: PAY ONCE (Mark's call, 8/21) ───────────────── */}
+        {/* ── Pricing: PAY ONCE (Mark's call, 8/21) — his layout,
+            our numbers. His source sells ₹119–499/mo; we don't. ──── */}
         <Section
           id="pricing"
           kicker="transparent pricing"
@@ -486,52 +293,20 @@ export function KundliLanding(): React.ReactElement {
         </Section>
 
         {/* ── FAQ ─────────────────────────────────────────────────── */}
-        <Section kicker="frequently asked questions" title="Got questions?">
-          <div className="mt-10 grid gap-3 max-w-3xl mx-auto">
-            {[
-              {
-                q: `How is ${brand} different from a traditional link-in-bio page?`,
-                a: "Your page isn't a list of links — it's an identity. Galleries, giveaways, a print-grade QR, save-my-contact, live stats, and a public page that loads instantly on any phone because visitors get plain HTML, not an app.",
-              },
-              {
-                q: "Is it really free?",
-                a: `Yes. Your first page is free forever — ${freeBlocks} blocks, every theme, the QR code, save-my-contact and live stats. Premium is one payment, whatever it's worth to you. There is no subscription and no trial clock.`,
-              },
-              {
-                q: "Can I use WhatsApp and UPI on my page?",
-                a: "WhatsApp and UPI blocks are in build right now — one-tap chat and direct pay-to-your-bank, with no gateway lock-in. Everything else on this page is live today.",
-              },
-              {
-                q: "Can I connect my own domain?",
-                a: "Custom domains are on the roadmap. Today every page lives at your handle on this site, and the URL survives renames so printed QR codes never break.",
-              },
-              {
-                q: "Can existing OurLynx users move over?",
-                a: "Yes — it's the same engine underneath. Your links, themes and stats come with you.",
-              },
-            ].map(({ q, a }) => (
-              <div key={q} className="panel p-5">
-                <h3 className="font-semibold">{q}</h3>
-                <p className="text-sm text-fg-muted mt-2 leading-relaxed">{a}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
+        <KundliFAQ brand={brand} freeBlocks={freeBlocks} />
 
-        {/* ── Closer ──────────────────────────────────────────────── */}
-        <Section title="Make your corner of the internet iconic.">
-          <p className="text-fg-muted text-center mt-3">
-            Free forever. Your handle mapped in 60 seconds.
-          </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <a href="#claim" className="btn btn-primary !py-3 !px-8 !text-base">
-              Create your {brand}
-            </a>
-            <a href="/discover" className="btn btn-secondary !py-3 !px-6">
-              <Globe size={15} /> See who's here
-            </a>
-          </div>
-        </Section>
+        {/* ── Closer — his real copy, wired to the real claim flow
+            instead of a router mock to /register. ────────────────── */}
+        <KundliFinalCTA
+          brand={brand}
+          handle={flow.handle}
+          onHandleChange={flow.setHandle}
+          onSubmit={() => {
+            const el = document.getElementById("claim");
+            el?.scrollIntoView({ behavior: "smooth", block: "start" });
+            inputRef.current?.focus();
+          }}
+        />
       </main>
       <Footer />
     </>
