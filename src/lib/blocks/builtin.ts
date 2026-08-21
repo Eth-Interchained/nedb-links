@@ -200,6 +200,58 @@ export const productBlock = defineBlock({
   defaults: () => ({ title: "", blurb: "", price: 499, vpa: "", payeeName: "", deliverable: "" }),
 });
 
+/**
+ * India rail #4 — a paid 1:1 booking, on the same Tier-1 rails.
+ *
+ * A booking is a product with a time attached, so it deliberately reuses
+ * the product machinery (claim → seller confirms against their bank →
+ * delivery) rather than growing a parallel one. The only genuinely new
+ * rule is exclusivity: a slot can be taken exactly once.
+ *
+ * Slots are plain strings the seller types ("Mon 25 Aug, 6:00 PM"), not
+ * parsed datetimes. That is a deliberate limit, not laziness — parsing
+ * would mean owning timezones, DST, and a calendar sync we don't have,
+ * and getting any of those subtly wrong means a creator misses a call
+ * they were paid for. A string the seller wrote is a string the buyer
+ * reads back unchanged.
+ */
+export const bookingBlock = defineBlock({
+  type: "booking",
+  name: "Paid booking",
+  description: "Sell 1:1 time — the buyer picks a slot, you confirm, we send the meeting link.",
+  capabilities: ["shareable", "searchable", "schedulable", "seo"],
+  schema: z.object({
+    title: z.string().min(1).max(120),
+    blurb: z.string().max(300).optional(),
+    price: z.number().min(1).max(100000),
+    vpa: z
+      .string()
+      .max(120)
+      .regex(/^$|^[a-zA-Z0-9._-]{2,64}@[a-zA-Z][a-zA-Z0-9.]{1,30}$/, "looks like name@bank"),
+    payeeName: z.string().max(60).optional(),
+    /** e.g. "45 mins · Google Meet" — shown, never parsed. */
+    duration: z.string().max(60).optional(),
+    /** Offered times, in the seller's own words. Empty = nothing bookable. */
+    slots: z.array(z.string().trim().min(1).max(80)).max(30),
+    /** The meeting link, released only after the seller confirms payment. */
+    deliverable: z
+      .string()
+      .max(500)
+      .regex(/^$|^https:\/\//, "the meeting link must be https")
+      .optional(),
+  }),
+  defaults: () => ({
+    title: "",
+    blurb: "",
+    price: 1499,
+    vpa: "",
+    payeeName: "",
+    duration: "45 mins",
+    slots: [],
+    deliverable: "",
+  }),
+});
+
 export const galleryBlock = defineBlock({
   type: "gallery",
   name: "Gallery",
