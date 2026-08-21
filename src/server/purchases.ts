@@ -348,6 +348,52 @@ purchasesApi.get("/", requireUser, wrap(async (req, res) => {
   res.json({ purchases: rows });
 }));
 
+/**
+ * Mark a purchase delivered and email the buyer — the ONE code path that
+ * releases a deliverable, whether a human confirmed it or a verified
+ * webhook did. Two paths would eventually disagree about what "delivered"
+ * means, and the disagreement would be discovered by a buyer who paid.
+ *
+ * Mails BEFORE writing the new status: if the send fails the claim stays
+ * actionable rather than silently closing with nothing sent.
+ */
+export async function deliverPurchase(doc: PurchaseDoc): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
+  const manifest = await getManifest(doc.identityId);
+  const block = manifest?.blocks.find((b) => b.id === doc.blockId);
+  const deliverable = String((block?.data as Record<string, unknown> | undefined)?.deliverable ?? "");
+  if (!/^https:\/\//.test(deliverable)) {
+    return {
+      ok: false,
+      code: "no_deliverable",
+      error: "this product has no delivery link yet — add one to the block before confirming",
+    };
+  }
+  try {
+    await sendMail(
+      productDeliveryEmail({
+        to: doc.buyerEmail,
+        title: doc.title,
+        deliverable,
+        handle: doc.handle,
+        slot: doc.slot,
+      }),
+    );
+  } catch (err) {
+    return { ok: false, error: `couldn't send the delivery email — ${err instanceof Error ? err.message : "try again"}` };
+  }
+  const updated: PurchaseDoc = { ...doc, status: "delivered", settledAt: new Date().toISOString() };
+  await db.put(COLLECTIONS.purchases, doc.purchaseId, updated as unknown as Record<string, unknown>, {
+    causedBy: causalParent(doc as unknown as Record<string, unknown>),
+    evidence: `purchase delivered: ${doc.purchaseId} (${doc.reference})`,
+  });
+  return { ok: true };
+}
+
+/** Load one purchase, or null. Used by the verified-webhook path. */
+export async function getPurchase(purchaseId: string): Promise<PurchaseDoc | null> {
+  return ((await db.get(COLLECTIONS.purchases, purchaseId)) as PurchaseDoc | null) ?? null;
+}
+
 async function settle(
   req: Parameters<Parameters<typeof wrap>[0]>[0],
   res: Parameters<Parameters<typeof wrap>[0]>[1],
@@ -373,34 +419,13 @@ async function settle(
   }
 
   if (next === "delivered") {
-    const manifest = await getManifest(identityId);
-    const block = manifest?.blocks.find((b) => b.id === doc.blockId);
-    const deliverable = String((block?.data as Record<string, unknown> | undefined)?.deliverable ?? "");
-    if (!/^https:\/\//.test(deliverable)) {
-      res.status(400).json({
-        error: "this product has no delivery link yet — add one to the block before confirming",
-        code: "no_deliverable",
-      });
+    const out = await deliverPurchase(doc);
+    if (!out.ok) {
+      res.status(out.code === "no_deliverable" ? 400 : 502).json({ error: out.error, code: out.code });
       return;
     }
-    // Mail BEFORE marking delivered: if the send fails, the claim stays
-    // actionable rather than silently closing with nothing sent.
-    try {
-      await sendMail(
-        productDeliveryEmail({
-          to: doc.buyerEmail,
-          title: doc.title,
-          deliverable,
-          handle: doc.handle,
-          slot: doc.slot,
-        }),
-      );
-    } catch (err) {
-      res.status(502).json({
-        error: `couldn't send the delivery email — ${err instanceof Error ? err.message : "try again"}`,
-      });
-      return;
-    }
+    res.json({ purchase: { ...doc, status: "delivered" } });
+    return;
   }
 
   const updated: PurchaseDoc = { ...doc, status: next, settledAt: new Date().toISOString() };
