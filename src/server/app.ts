@@ -22,6 +22,7 @@ import { grants } from "./grants";
 import { handles, identities } from "./identities";
 import { payments } from "./payments";
 import { preview } from "./preview";
+import { purchases, purchasesApi } from "./purchases";
 import { demo } from "./demo";
 import { discover } from "./discover";
 import { qrFlyer, qrStudio } from "./qrstudio";
@@ -109,6 +110,7 @@ export function createApp(): Express {
   app.use("/api/identities/:id/analytics", analytics);
   app.use("/api/identities/:id/grants", grants);
   app.use("/api/identities/:id/payments", payments);
+  app.use("/api/identities/:id/purchases", purchasesApi);
   app.use("/api/identities/:id/qr", qrStudio);
   app.use("/api/identities", identities);
   app.use("/api/preview", preview);
@@ -177,6 +179,7 @@ export function createApp(): Express {
   // Discover mounts BEFORE /:handle so the directory wins the route.
   app.use(discover);
   app.use(raffles); // /r/:id pages + /api/raffles — before /:handle
+  app.use(purchases); // /buy/:identityId/:blockId — before /:handle
   app.use(demo); // /demo — the homepage's live "what done looks like"
   app.use(qrFlyer); // /qr/flyer/:id — print sheet, before /:handle
   app.use(render);

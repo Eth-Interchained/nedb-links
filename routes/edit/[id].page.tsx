@@ -100,6 +100,11 @@ function blockSummary(b: Block): string {
         ? `${str(d.vpa)} · ₹${amt}`
         : `${str(d.vpa)} · payer chooses`;
     }
+    case "product": {
+      if (!str(d.vpa)) return "add your UPI ID to sell this";
+      if (!str(d.deliverable)) return "add the delivery link before you sell";
+      return `₹${Number(d.price) || 0} · delivered on your confirmation`;
+    }
     case "link":
       return str(d.url) || "no url yet";
     case "header":
@@ -126,6 +131,8 @@ function blockTitle(b: Block, fallback: string): string {
   switch (b.type) {
     case "giveaway":
       return str(d.prize) || fallback;
+    case "product":
+      return str(d.title) || fallback;
     case "link":
       return str(d.label) || fallback;
     case "embed":
@@ -830,6 +837,84 @@ function BlockFields({
             />
             <p className="text-[11px] text-fg-subtle mt-1.5">
               Already typed when the chat opens — it qualifies the lead before they say a word.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    case "product": {
+      const price = Number(d.price);
+      return (
+        <div className="grid gap-3">
+          <div className="grid sm:grid-cols-[2fr_1fr] gap-3">
+            <div>
+              <label className="label">What are you selling?</label>
+              <input
+                className="field"
+                placeholder="Freelancer Notion OS"
+                value={str(d.title)}
+                onChange={(e) => onChange({ ...d, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Price (₹)</label>
+              <input
+                className="field"
+                inputMode="decimal"
+                value={Number.isFinite(price) && price > 0 ? String(price) : ""}
+                onChange={(e) => {
+                  const n = Number(e.target.value.replace(/[^\d.]/g, ""));
+                  onChange({ ...d, price: Number.isFinite(n) ? n : 0 });
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">One line about it</label>
+            <input
+              className="field"
+              placeholder="120+ Figma components, instant download"
+              value={str(d.blurb)}
+              onChange={(e) => onChange({ ...d, blurb: e.target.value })}
+            />
+          </div>
+          <div className="grid sm:grid-cols-[2fr_1fr] gap-3">
+            <div>
+              <label className="label">Your UPI ID (where the money lands)</label>
+              <input
+                className="field font-mono"
+                placeholder="yourname@okhdfcbank"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={str(d.vpa)}
+                onChange={(e) => onChange({ ...d, vpa: e.target.value.trim() })}
+              />
+            </div>
+            <div>
+              <label className="label">Payee name</label>
+              <input
+                className="field"
+                placeholder="Your name"
+                value={str(d.payeeName)}
+                onChange={(e) => onChange({ ...d, payeeName: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">Delivery link (https)</label>
+            <input
+              className="field font-mono"
+              placeholder="https://drive.google.com/..."
+              value={str(d.deliverable)}
+              onChange={(e) => onChange({ ...d, deliverable: e.target.value.trim() })}
+            />
+            {/* Say the two things a seller most needs to know, where they
+                are deciding — not in a help doc they'll never open. */}
+            <p className="text-[11px] text-fg-subtle mt-1.5 leading-relaxed">
+              <b className="text-fg-muted">Never shown publicly.</b> A buyer pays your UPI directly,
+              sends you their reference number, and you confirm it against your own bank — then we
+              email them this link. We&apos;re not in the transaction and take no fee.
             </p>
           </div>
         </div>
