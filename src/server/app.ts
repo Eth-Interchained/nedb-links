@@ -16,6 +16,7 @@ import { accounts } from "./accounts";
 import { accountsEmail } from "./accounts-email";
 import { analytics, analyticsSummary } from "./analytics";
 import { billing, mountWebhook } from "./billing";
+import { mountCashfreeWebhook } from "./cashfree";
 import { config } from "./config";
 import { db } from "./db";
 import { grants } from "./grants";
@@ -52,6 +53,9 @@ export function createApp(): Express {
   // Stripe webhook needs the raw body for signature verification —
   // mounted before the JSON parser touches anything.
   mountWebhook(app);
+  // Same reason as Stripe's: HMAC is over exact bytes, so this must see
+  // the raw body before any parser rewrites it.
+  mountCashfreeWebhook(app);
   app.use(express.json({ limit: "8mb" }));
   // Zero-JS pages (/r/:id giveaway entry, confirm) submit real HTML
   // <form method="post"> — the browser sends application/x-www-form-
