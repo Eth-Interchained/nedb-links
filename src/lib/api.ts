@@ -15,6 +15,10 @@ export interface AppConfig {
   authMode: "wallet" | "email";
   brandLogoUrl?: string;
   brandName: string;
+  /** Which storefront wireframe this deployment wears ("default"|"kundli"). */
+  brandKey?: string;
+  /** ISO 4217 the storefront quotes money in. */
+  currency?: string;
   defaultTheme: string;
   fiatDoor: boolean;
   limitEnabled: boolean;

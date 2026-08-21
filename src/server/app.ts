@@ -83,6 +83,8 @@ export function createApp(): Express {
     res.json({
       authMode: config.authMode,
       brandName: config.brandName,
+      brandKey: config.brandKey,
+      currency: config.currency,
       brandLogoUrl: config.brandLogoUrl || undefined,
       defaultTheme: config.defaultTheme,
       fiatDoor: Boolean(config.stripeSecretKey),

@@ -573,3 +573,16 @@ test("link labels center on the card — icon or not; the giveaway stays poster-
     "giveaway keeps its poster layout",
   );
 });
+
+test("the kundli porcelain theme renders a light page with readable ink", async () => {
+  const html = renderProfileHtml(fixture({ theme: "kundli" }), CTX);
+  assert.ok(html.includes("background: #fefefe"), "porcelain canvas");
+  assert.ok(html.includes("#110e0c"), "near-black ink");
+  assert.ok(html.includes("#c85c10"), "marigold accent");
+  // The readability contract: the card surface must differ from the
+  // canvas, or every card vanishes into a white page.
+  const { THEMES } = await import("../src/lib/renderers/html");
+  const k = THEMES.kundli;
+  assert.notEqual(k.card.toLowerCase(), k.bg.toLowerCase(), "cards are distinguishable from the canvas");
+  assert.ok(html.includes(k.card), "warm card surface reaches the page");
+});
