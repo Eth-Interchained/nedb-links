@@ -159,6 +159,47 @@ export const upiBlock = defineBlock({
   defaults: () => ({ vpa: "", payeeName: "", label: "Pay with UPI", amount: 0, note: "" }),
 });
 
+/**
+ * India rail #3 — a digital product sold on Tier-1 UPI rails.
+ *
+ * The honest loop, and the reason it looks like this: a UPI intent has no
+ * callback, so nothing can auto-confirm a payment. Rather than fake it or
+ * force every seller through a payment gateway, the buyer pays directly,
+ * submits their UPI reference number, and the SELLER confirms from their
+ * own bank app — then delivery fires. Slower than a gateway by one human
+ * step, but it needs no KYC, no merchant account, and takes no fee, which
+ * is what makes "your money, straight to your bank" literally true.
+ *
+ * `deliverable` is never rendered on the public page. It is released by
+ * email only after the seller confirms the payment landed.
+ */
+export const productBlock = defineBlock({
+  type: "product",
+  name: "Digital product",
+  description: "Sell a file or link for UPI — you confirm the payment, we deliver it.",
+  capabilities: ["shareable", "searchable", "seo"],
+  schema: z.object({
+    title: z.string().min(1).max(120),
+    blurb: z.string().max(300).optional(),
+    /** Price in rupees. Fixed — "pay what you want" muddies confirmation. */
+    price: z.number().min(1).max(100000),
+    /** Where the money goes: the seller's own VPA. Same rules as the UPI block. */
+    vpa: z
+      .string()
+      .max(120)
+      .regex(/^$|^[a-zA-Z0-9._-]{2,64}@[a-zA-Z][a-zA-Z0-9.]{1,30}$/, "looks like name@bank"),
+    payeeName: z.string().max(60).optional(),
+    /** Released to the buyer ONLY after the seller confirms. https only —
+     *  it travels in an email, and we don't mail people insecure links. */
+    deliverable: z
+      .string()
+      .max(500)
+      .regex(/^$|^https:\/\//, "the delivery link must be https")
+      .optional(),
+  }),
+  defaults: () => ({ title: "", blurb: "", price: 499, vpa: "", payeeName: "", deliverable: "" }),
+});
+
 export const galleryBlock = defineBlock({
   type: "gallery",
   name: "Gallery",

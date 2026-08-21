@@ -311,6 +311,9 @@ export const COLLECTIONS = {
    *  at rest (AES-256-GCM, owner-bound). Interchained is never merchant
    *  of record and never holds funds; see server/payments.ts. */
   payments: "payments",
+  /** Tier-1 product sales: a buyer's CLAIM that they paid, pending the
+   *  seller's confirmation against their own bank. Never a receipt. */
+  purchases: "purchases",
 } as const;
 
 /**

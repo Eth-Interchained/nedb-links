@@ -180,6 +180,27 @@ export function upiHref(d: Record<string, unknown>): string | null {
   return `upi://pay?${params.join("&")}`;
 }
 
+/**
+ * The UPI intent for a PRODUCT block.
+ *
+ * Products name their money field `price` (a product has a price; a
+ * payment has an amount), so this maps the product's shape onto the
+ * intent builder rather than letting the two drift. Found the hard way:
+ * calling upiHref() directly on a product silently produced a link with
+ * no `am=`, which opens the payer's app with a blank amount and quietly
+ * pushes the seller's price onto the buyer to retype.
+ */
+export function productUpiHref(d: Record<string, unknown>): string | null {
+  const price = typeof d.price === "number" ? d.price : Number(d.price);
+  if (!Number.isFinite(price) || price <= 0) return null;
+  return upiHref({
+    vpa: d.vpa,
+    payeeName: d.payeeName,
+    amount: price,
+    note: d.note ?? d.title,
+  });
+}
+
 function embedFrame(url: string): string | null {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/);
   if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
@@ -270,6 +291,20 @@ function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
   ${amountTag || '<span class="ar">›</span>'}
 </a>
 <p class="upiv">or pay <code>${esc(String(d.vpa))}</code> from any UPI app</p>`;
+    }
+    case "product": {
+      // A product card that leads to the buy page rather than paying
+      // inline: the buyer needs somewhere to come BACK to after their UPI
+      // app takes over, and that return step is where the reference
+      // number gets captured. `deliverable` is deliberately not rendered.
+      const price = typeof d.price === "number" ? d.price : Number(d.price);
+      if (!d.title || !Number.isFinite(price) || price <= 0 || !productUpiHref(d)) return "";
+      const blurb = String(d.blurb ?? "").trim();
+      return `<a class="lk prod" href="${esc(origin)}/buy/${esc(m.identityId)}/${esc(b.id)}" rel="noopener">
+  <span class="ic">⬗</span>
+  <span><b>${esc(d.title)}</b>${blurb ? `<i class="prods">${esc(blurb)}</i>` : ""}</span>
+  <i class="upia">₹${esc(price.toFixed(2).replace(/\.00$/, ""))}</i>
+</a>`;
     }
     case "gallery": {
       // The portfolio surface (Marisa's ask: "shouldn't we have some
@@ -528,6 +563,9 @@ ${fonts.link}
           white-space: nowrap; margin-left: auto; padding-left: 10px; }
   .upiv { font-size: 12px; color: ${pageSub(t)}; text-align: center;
           margin: -4px 0 12px; }
+  .prod b { display: block; }
+  .prods { display: block; font-style: normal; font-weight: 500; font-size: 12px;
+           color: ${t.sub}; margin-top: 2px; }
   .upiv code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
                font-size: 12px; color: ${t.text}; background: ${t.card};
                border-radius: 6px; padding: 2px 6px; }
