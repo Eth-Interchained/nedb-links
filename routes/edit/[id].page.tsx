@@ -91,6 +91,15 @@ function blockSummary(b: Block): string {
       const n = Array.isArray(d.images) ? d.images.length : 0;
       return n ? `${n} photo${n === 1 ? "" : "s"}` : "add your first photo";
     }
+    case "whatsapp":
+      return str(d.phone) ? `+${str(d.phone)}` : "add your WhatsApp number";
+    case "upi": {
+      if (!str(d.vpa)) return "add your UPI ID";
+      const amt = Number(d.amount);
+      return Number.isFinite(amt) && amt > 0
+        ? `${str(d.vpa)} · ₹${amt}`
+        : `${str(d.vpa)} · payer chooses`;
+    }
     case "link":
       return str(d.url) || "no url yet";
     case "header":
@@ -780,6 +789,124 @@ function BlockFields({
       return <GiveawayFields block={block} onChange={onChange} />;
     case "gallery":
       return <GalleryFields block={block} onChange={onChange} />;
+    case "whatsapp": {
+      const digits = str(d.phone).replace(/\D/g, "");
+      return (
+        <div className="grid gap-3">
+          <div className="grid sm:grid-cols-[1fr_1fr] gap-3">
+            <div>
+              <label className="label">WhatsApp number</label>
+              <div className="flex items-center gap-2 bg-ink-850 border border-ink-800 rounded-2xl px-3 py-2.5">
+                <span className="text-fg-subtle font-mono text-sm shrink-0">+</span>
+                <input
+                  className="flex-1 min-w-0 bg-transparent outline-none font-mono text-sm text-fg placeholder:text-fg-faint"
+                  inputMode="numeric"
+                  placeholder="919876543210"
+                  value={digits}
+                  onChange={(e) => onChange({ ...d, phone: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                />
+              </div>
+              <p className="text-[11px] text-fg-subtle mt-1.5">
+                Country code first, no spaces or +. India is 91.
+              </p>
+            </div>
+            <div>
+              <label className="label">Button label</label>
+              <input
+                className="field"
+                placeholder="Chat on WhatsApp"
+                value={str(d.label)}
+                onChange={(e) => onChange({ ...d, label: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">Pre-filled message (optional)</label>
+            <input
+              className="field"
+              placeholder="Hi! I'd like to book a consultation."
+              value={str(d.message)}
+              onChange={(e) => onChange({ ...d, message: e.target.value.slice(0, 300) })}
+            />
+            <p className="text-[11px] text-fg-subtle mt-1.5">
+              Already typed when the chat opens — it qualifies the lead before they say a word.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    case "upi": {
+      const amt = Number(d.amount);
+      return (
+        <div className="grid gap-3">
+          <div className="grid sm:grid-cols-[2fr_1fr] gap-3">
+            <div>
+              <label className="label">Your UPI ID</label>
+              <input
+                className="field font-mono"
+                placeholder="yourname@okhdfcbank"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                value={str(d.vpa)}
+                onChange={(e) => onChange({ ...d, vpa: e.target.value.trim() })}
+              />
+            </div>
+            <div>
+              <label className="label">Payee name</label>
+              <input
+                className="field"
+                placeholder="Your name"
+                value={str(d.payeeName)}
+                onChange={(e) => onChange({ ...d, payeeName: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-[1fr_1fr_1fr] gap-3">
+            <div>
+              <label className="label">Amount (₹)</label>
+              <input
+                className="field"
+                inputMode="decimal"
+                placeholder="0 = they choose"
+                value={Number.isFinite(amt) && amt > 0 ? String(amt) : ""}
+                onChange={(e) => {
+                  const n = Number(e.target.value.replace(/[^\d.]/g, ""));
+                  onChange({ ...d, amount: Number.isFinite(n) ? n : 0 });
+                }}
+              />
+            </div>
+            <div>
+              <label className="label">Button label</label>
+              <input
+                className="field"
+                placeholder="Pay with UPI"
+                value={str(d.label)}
+                onChange={(e) => onChange({ ...d, label: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Note on the payment</label>
+              <input
+                className="field"
+                placeholder="Design consultation"
+                value={str(d.note)}
+                onChange={(e) => onChange({ ...d, note: e.target.value })}
+              />
+            </div>
+          </div>
+          {/* The limit, stated where the decision is made — not buried in
+              docs. A UPI intent has no callback, so nothing here can tell
+              you the money arrived. Your bank is the receipt. */}
+          <p className="text-[11px] text-fg-subtle leading-relaxed">
+            Payments go <b className="text-fg-muted">straight to your bank</b> — we&apos;re not in the
+            transaction, take no cut, and never hold your money. Because a UPI link has no callback,
+            this page can&apos;t confirm a payment landed: check your own UPI app or bank before you
+            deliver anything.
+          </p>
+        </div>
+      );
+    }
     case "link":
       return (
         <div className="grid sm:grid-cols-[1fr_2fr_72px] gap-3">

@@ -328,9 +328,10 @@ export function IndiaFirst(): React.ReactElement {
           W
         </span>
       ),
-      badge: "Native Chat",
+      badge: "Live today",
+      live: true,
       title: "1-Tap WhatsApp",
-      desc: "Turn visitors into direct conversations instantly. No forms, no friction, just real dialogue.",
+      desc: "Turn visitors into direct conversations instantly. No forms, no friction — and the first message is already typed.",
       preview: (
         <div className="mt-4 p-3.5 bg-ink-900 rounded-2xl border border-ink-800 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5">
@@ -348,9 +349,10 @@ export function IndiaFirst(): React.ReactElement {
     },
     {
       Icon: () => <IndianRupee className="w-7 h-7 text-accent-soft" />,
-      badge: "Instant Payouts",
+      badge: "Live today",
+      live: true,
       title: "Seamless UPI Payments",
-      desc: "Accept payments from GPay, PhonePe, Paytm, and CRED in INR without complex merchant gateways.",
+      desc: "Paid straight to your bank from GPay, PhonePe, Paytm or CRED. Your UPI ID, your money — no gateway, no middleman, and we never take a cut.",
       preview: (
         <div className="mt-4 p-3.5 bg-ink-900 rounded-2xl border border-ink-800 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
@@ -371,7 +373,8 @@ export function IndiaFirst(): React.ReactElement {
     },
     {
       Icon: () => <QrCode className="w-7 h-7 text-fg" />,
-      badge: "Physical to Digital",
+      badge: "Live today",
+      live: true,
       title: "Customizable QR Codes",
       desc: "Print your Kundli QR on business cards, packaging, merch, or display at events for instant scans.",
       preview: (
@@ -390,7 +393,8 @@ export function IndiaFirst(): React.ReactElement {
     },
     {
       Icon: () => <Smartphone className="w-7 h-7 text-blue-500" />,
-      badge: "Fast Load",
+      badge: "Live today",
+      live: true,
       title: "Sub-Second Mobile Speeds",
       desc: "Engineered for Indian mobile networks — visitors get plain HTML, not an app, so pages open fast on any 4G phone.",
       preview: (
@@ -427,17 +431,27 @@ export function IndiaFirst(): React.ReactElement {
                   <div className="p-3 bg-ink-900 rounded-2xl border border-ink-800 shadow-xs">
                     <f.Icon />
                   </div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-fg-subtle px-3 py-1 bg-ink-850 rounded-full border border-ink-800">
+                  <span
+                    className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${
+                      f.live
+                        ? "text-signal-green bg-signal-green/10 border-signal-green/25"
+                        : "text-fg-subtle bg-ink-850 border-ink-800"
+                    }`}
+                  >
                     {f.badge}
                   </span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-display font-bold mb-3">{f.title}</h3>
                 <p className="text-sm sm:text-base text-fg-muted font-medium leading-relaxed">{f.desc}</p>
               </div>
-              <div className="pt-2">{f.preview}</div>
+              <div className={`pt-2 ${f.live ? "" : "opacity-60"}`}>{f.preview}</div>
             </div>
           ))}
         </div>
+        <p className="text-center text-[11px] text-fg-subtle mt-8 max-w-xl mx-auto leading-relaxed">
+          All four are live today. UPI pays you directly — because a UPI link has no callback, your
+          bank is the receipt, not us.
+        </p>
       </div>
     </section>
   );
@@ -547,7 +561,8 @@ export function CreatorCommerce(): React.ReactElement {
         </div>
       </div>
       <p className="text-center text-[11px] text-fg-subtle mt-10 relative z-10">
-        Digital products, bookings and UPI checkout are shipping next — everything else on this page is live today.
+        UPI payments are live today — this demo is an illustration of the storefront. Digital-product
+        delivery and paid bookings are shipping next.
       </p>
     </section>
   );
@@ -988,7 +1003,7 @@ export function KundliFAQ({ brand, freeBlocks }: { brand: string; freeBlocks: nu
     {
       category: "Product",
       q: `What is ${brand}?`,
-      a: `${brand} is your digital identity mapped into one single, fast-loading link. It brings your social presence, portfolio, giveaways, QR code and live stats into one page — WhatsApp chat and a UPI storefront are shipping next.`,
+      a: `${brand} is your digital identity mapped into one single, fast-loading link — your social presence, portfolio, galleries, giveaways, 1-tap WhatsApp, UPI payments, a print-grade QR code and live stats, all on one page.`,
     },
     {
       category: "Product",
@@ -1007,13 +1022,13 @@ export function KundliFAQ({ brand, freeBlocks }: { brand: string; freeBlocks: nu
     },
     {
       category: "India & Payments",
-      q: "How will WhatsApp integration work?",
-      a: "One tap starts a chat with a pre-filled message you set — no forms, no friction. In build now.",
+      q: "How does the WhatsApp button work?",
+      a: "Add your number and the message you want visitors to send — \"Hi, I'd like to book a consultation\" — and one tap opens WhatsApp with it already typed. You get a qualified lead instead of a cold \"hey\", and the tap shows up in your stats like any other link.",
     },
     {
       category: "India & Payments",
-      q: "How will UPI payments work?",
-      a: "Connect your UPI ID (GPay, PhonePe, Paytm, CRED) and sell digital downloads or bookings with no gateway lock-in. In build now.",
+      q: "How do UPI payments work — and what do you take?",
+      a: "You add your own UPI ID. The button opens the payer's UPI app (GPay, PhonePe, Paytm, CRED) pointed straight at your address, so the money moves bank to bank. We are not in the transaction: no gateway, no merchant account, no custody, and we take nothing. One honest limit — a UPI link has no callback, so this page can never know a payment landed. Check your own UPI app or bank before you deliver anything; we will never show you a fake receipt.",
     },
     {
       category: "Pricing",
