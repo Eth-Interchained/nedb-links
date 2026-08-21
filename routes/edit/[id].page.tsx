@@ -32,6 +32,7 @@ import { Nav } from "../../src/components/Nav";
 import { Gate } from "../../src/components/Gate";
 import { Footer } from "../../src/components/Footer";
 import { PremiumWelcomeModal } from "../../src/components/PremiumModals";
+import { SalesPanel } from "../../src/components/SalesPanel";
 import "../../src/lib/blocks/builtin";
 import "../../src/lib/templates/builtin";
 import { ApiError, adminHeaders, fetchPreviewHtml, getJson, postJson, putJson } from "../../src/lib/api";
@@ -1917,6 +1918,9 @@ export default function EditPage(): React.ReactElement {
                 </div>
               </div>
             </div>
+
+            {/* Sales — only renders once something has actually sold. */}
+            <SalesPanel identityId={manifest.identityId} canSettle={yourRole === "owner"} />
 
             {/* Theme — a gallery, not pills */}
             <div>
