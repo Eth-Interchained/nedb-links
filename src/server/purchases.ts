@@ -34,6 +34,7 @@ import { COLLECTIONS, type AccountRecord, type Block } from "../lib/identity";
 import { esc, productUpiHref } from "../lib/renderers/html";
 import { authOf, requireUser } from "./auth";
 import { causalParent, db } from "./db";
+import { track } from "./events";
 import { productDeliveryEmail, productClaimEmail } from "./emails";
 import { grantsFor, hasRole } from "./grants";
 import { getManifest } from "./identities";
@@ -302,6 +303,17 @@ purchases.post("/buy/:identityId/:blockId", wrap(async (req, res, next) => {
     evidence: `purchase claimed: ${found.manifest.handle}/${found.block.id} ref ${parsed.data.reference}`,
   });
 
+  // Sales were invisible to analytics until now — every dashboard reads
+  // the event log, so a purchase that emits nothing may as well not have
+  // happened as far as the product's own numbers are concerned.
+  track({
+    kind: "purchase_claimed",
+    identityId: doc.identityId,
+    blockId: doc.blockId,
+    amount: doc.price,
+    source: doc.slot ? "booking" : "product",
+  });
+
   // Tell the seller there's something to check. Best-effort: a mail
   // failure must not lose the claim the buyer just made.
   const sellerEmail = await ownerEmail(found.manifest.identityId);
@@ -386,6 +398,15 @@ export async function deliverPurchase(doc: PurchaseDoc): Promise<{ ok: true } | 
     causedBy: causalParent(doc as unknown as Record<string, unknown>),
     evidence: `purchase delivered: ${doc.purchaseId} (${doc.reference})`,
   });
+  // Emitted only after the write lands: "delivered" in the log must mean
+  // the state actually changed, not that we were about to try.
+  track({
+    kind: "purchase_delivered",
+    identityId: doc.identityId,
+    blockId: doc.blockId,
+    amount: doc.price,
+    source: doc.slot ? "booking" : "product",
+  });
   return { ok: true };
 }
 
@@ -433,6 +454,15 @@ async function settle(
     causedBy: causalParent(doc as unknown as Record<string, unknown>),
     evidence: `purchase ${next}: ${purchaseId} (${doc.reference})`,
   });
+  if (next === "rejected") {
+    track({
+      kind: "purchase_rejected",
+      identityId: doc.identityId,
+      blockId: doc.blockId,
+      amount: doc.price,
+      source: doc.slot ? "booking" : "product",
+    });
+  }
   res.json({ purchase: updated });
 }
 

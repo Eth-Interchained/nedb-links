@@ -13,6 +13,7 @@ import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 
 import { accounts } from "./accounts";
+import { admin } from "./admin";
 import { accountsEmail } from "./accounts-email";
 import { analytics, analyticsSummary } from "./analytics";
 import { billing, mountWebhook } from "./billing";
@@ -107,6 +108,7 @@ export function createApp(): Express {
   // ── API ───────────────────────────────────────────────────────────────────
   // ONE account system per deployment. The other product's endpoints
   // don't exist here — wallet routes 404 on ne-db.com and vice versa.
+  app.use("/api/admin", admin);
   app.use("/api/auth", config.authMode === "email" ? accountsEmail : accounts);
   app.use("/api/analytics", analyticsSummary);
   app.use("/api/billing", billing);
