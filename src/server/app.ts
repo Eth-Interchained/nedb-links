@@ -20,6 +20,7 @@ import { config } from "./config";
 import { db } from "./db";
 import { grants } from "./grants";
 import { handles, identities } from "./identities";
+import { payments } from "./payments";
 import { preview } from "./preview";
 import { demo } from "./demo";
 import { discover } from "./discover";
@@ -107,6 +108,7 @@ export function createApp(): Express {
   app.use("/api/handles", handles);
   app.use("/api/identities/:id/analytics", analytics);
   app.use("/api/identities/:id/grants", grants);
+  app.use("/api/identities/:id/payments", payments);
   app.use("/api/identities/:id/qr", qrStudio);
   app.use("/api/identities", identities);
   app.use("/api/preview", preview);

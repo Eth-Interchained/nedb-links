@@ -98,6 +98,67 @@ export const surfacesBlock = defineBlock({
   defaults: () => ({ title: "", vcard: true, qr: true, card: true, md: false, json: false }),
 });
 
+/**
+ * India rail #1 — WhatsApp.
+ *
+ * Stored as PARTS (digits + message), never as a URL: the renderer builds
+ * the wa.me link itself, so no free-text string ever lands in an href.
+ * A pre-filled message is the whole point — "Hi, I want to book a design
+ * consultation" qualifies the lead before the chat even opens.
+ */
+export const whatsappBlock = defineBlock({
+  type: "whatsapp",
+  name: "WhatsApp",
+  description: "One tap opens a WhatsApp chat with you — with your message already typed.",
+  capabilities: ["shareable", "searchable", "seo"],
+  schema: z.object({
+    /** E.164 digits WITHOUT the +: country code first (91… for India).
+     *  Stored bare because wa.me wants it bare; validated as digits only
+     *  so nothing but a phone number can reach the link builder. */
+    phone: z.string().regex(/^$|^[1-9]\d{7,14}$/, "digits only, country code first (e.g. 919876543210)"),
+    label: z.string().max(60).optional(),
+    /** Pre-filled first message. Encoded by the renderer, never raw. */
+    message: z.string().max(300).optional(),
+  }),
+  defaults: () => ({ phone: "", label: "Chat on WhatsApp", message: "" }),
+});
+
+/**
+ * India rail #2 — UPI, paid straight to the creator's own bank.
+ *
+ * Mark's call, 2026-08-21: we are NEVER the intermediary. No merchant of
+ * record, no gateway, no cut, no custody. This block is a direct
+ * payer→payee UPI intent built from the creator's own VPA, so the money
+ * moves bank-to-bank and Interchained never touches it. That is also why
+ * there is nothing secret to store here: a VPA is public by design.
+ *
+ * The honest limit, stated plainly because the UI must not imply
+ * otherwise: a UPI intent link has NO callback. Nothing tells this server
+ * whether the payment happened. So this block COLLECTS; it cannot confirm,
+ * cannot auto-deliver, and must never render a "paid" state.
+ */
+export const upiBlock = defineBlock({
+  type: "upi",
+  name: "UPI payment",
+  description: "Take UPI payments straight to your bank — no gateway, no middleman, no fees from us.",
+  capabilities: ["shareable", "printable", "qr", "seo"],
+  schema: z.object({
+    /** The creator's own VPA (name@bank). Public by design — not a secret. */
+    vpa: z
+      .string()
+      .max(120)
+      .regex(/^$|^[a-zA-Z0-9._-]{2,64}@[a-zA-Z][a-zA-Z0-9.]{1,30}$/, "looks like name@bank"),
+    /** Payee name shown in the payer's UPI app. */
+    payeeName: z.string().max(60).optional(),
+    label: z.string().max(60).optional(),
+    /** Fixed amount in rupees; omit/0 = payer chooses. Two decimals max. */
+    amount: z.number().min(0).max(100000).optional(),
+    /** Transaction note the payer sees. */
+    note: z.string().max(80).optional(),
+  }),
+  defaults: () => ({ vpa: "", payeeName: "", label: "Pay with UPI", amount: 0, note: "" }),
+});
+
 export const galleryBlock = defineBlock({
   type: "gallery",
   name: "Gallery",

@@ -307,6 +307,10 @@ export const COLLECTIONS = {
   accounts: "accounts",
   raffles: "raffles",
   raffleEntries: "raffle_entries",
+  /** Tier-2 payment credentials — the creator's OWN provider keys, sealed
+   *  at rest (AES-256-GCM, owner-bound). Interchained is never merchant
+   *  of record and never holds funds; see server/payments.ts. */
+  payments: "payments",
 } as const;
 
 /**

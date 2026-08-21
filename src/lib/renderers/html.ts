@@ -144,6 +144,42 @@ function iconMarkup(icon: unknown): string {
   return esc(s);
 }
 
+/**
+ * Build a wa.me link from validated parts.
+ *
+ * The phone is re-checked here (digits only) even though the schema
+ * already enforces it — a renderer must never trust that the data it was
+ * handed came through the current schema. Old documents outlive schemas.
+ */
+export function whatsappHref(phone: unknown, message: unknown): string | null {
+  const digits = String(phone ?? "").replace(/\D/g, "");
+  if (!/^[1-9]\d{7,14}$/.test(digits)) return null;
+  const msg = String(message ?? "").trim().slice(0, 300);
+  return `https://wa.me/${digits}${msg ? `?text=${encodeURIComponent(msg)}` : ""}`;
+}
+
+/**
+ * Build a UPI intent from validated parts — payer straight to payee.
+ *
+ * Every component is re-validated and URI-encoded here; nothing the user
+ * typed reaches the href as raw text. Returns null unless the VPA is
+ * well-formed, so a half-filled block renders as nothing rather than as
+ * a broken payment link (a wrong payee address is worse than no button).
+ */
+export function upiHref(d: Record<string, unknown>): string | null {
+  const vpa = String(d.vpa ?? "").trim();
+  if (!/^[a-zA-Z0-9._-]{2,64}@[a-zA-Z][a-zA-Z0-9.]{1,30}$/.test(vpa)) return null;
+  const params = [`pa=${encodeURIComponent(vpa)}`];
+  const payee = String(d.payeeName ?? "").trim().slice(0, 60);
+  if (payee) params.push(`pn=${encodeURIComponent(payee)}`);
+  const amt = typeof d.amount === "number" ? d.amount : Number(d.amount);
+  if (Number.isFinite(amt) && amt > 0) params.push(`am=${amt.toFixed(2)}`);
+  params.push("cu=INR");
+  const note = String(d.note ?? "").trim().slice(0, 80);
+  if (note) params.push(`tn=${encodeURIComponent(note)}`);
+  return `upi://pay?${params.join("&")}`;
+}
+
 function embedFrame(url: string): string | null {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/);
   if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
@@ -193,6 +229,47 @@ function renderBlock(b: Block, m: IdentityManifest, origin: string): string {
   <span><b>${esc(d.prize)}</b><i class="gvs">${sub}</i></span>
   <span class="ar">${closed ? "›" : "→"}</span>
 </a>`;
+    }
+    case "whatsapp": {
+      // One tap, chat open, message already typed. Routed through /go so
+      // the owner sees the tap in stats like any other link.
+      const href = whatsappHref(d.phone, d.message);
+      if (!href) return "";
+      const label = String(d.label ?? "").trim() || "Chat on WhatsApp";
+      const glyph = brandGlyph("whatsapp");
+      const icon = glyph
+        ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${glyph}"/></svg>`
+        : "💬";
+      return `<a class="lk wa" href="${esc(go(origin, m, b.id, href))}" rel="noopener">
+  <span class="ic">${icon}</span>
+  <span>${esc(label)}</span>
+  <span class="ar">›</span>
+</a>`;
+    }
+    case "upi": {
+      // Payer → payee, direct. We are not in this transaction: no gateway,
+      // no custody, no cut. The VPA is printed in the open because that is
+      // what actually gets people paid — someone whose UPI app doesn't
+      // catch the intent link can still type the address by hand.
+      //
+      // Deliberately absent: any "paid"/"verified" affordance. A UPI intent
+      // has no callback, so this page cannot know. Claiming otherwise would
+      // be the exact kind of rounding-up we don't do.
+      const href = upiHref(d);
+      if (!href) return "";
+      const label = String(d.label ?? "").trim() || "Pay with UPI";
+      const amt = typeof d.amount === "number" ? d.amount : Number(d.amount);
+      const amountTag =
+        Number.isFinite(amt) && amt > 0
+          ? `<i class="upia">₹${esc(amt.toFixed(2).replace(/\.00$/, ""))}</i>`
+          : "";
+      const note = String(d.note ?? "").trim();
+      return `<a class="lk upi" href="${esc(href)}" rel="noopener">
+  <span class="ic">₹</span>
+  <span><b>${esc(label)}</b>${note ? `<i class="upin">${esc(note)}</i>` : ""}</span>
+  ${amountTag || '<span class="ar">›</span>'}
+</a>
+<p class="upiv">or pay <code>${esc(String(d.vpa))}</code> from any UPI app</p>`;
     }
     case "gallery": {
       // The portfolio surface (Marisa's ask: "shouldn't we have some
@@ -433,6 +510,27 @@ ${fonts.link}
   .gvw b { display: block; text-shadow: 2px 2px 0 ${giveawayStops(ctx.holoColors)[0]}55; }
   .gvs { display: block; font-style: normal; font-weight: 500; font-size: 12px;
          color: ${t.sub}; margin-top: 2px; }
+
+  /* WhatsApp — the brand green earns its place here: on an Indian phone
+     this glyph IS the affordance, recognised before the label is read. */
+  .wa .ic svg { fill: #25D366; }
+
+  /* UPI — reads as money without shouting. The amount sits where the
+     chevron would, because the price IS the call to action. The VPA line
+     underneath is the fallback path for anyone whose app misses the
+     intent link, and it is deliberately plain text: no fake receipt, no
+     "verified" badge. This page cannot know whether a UPI intent was
+     ever paid, and it must not pretend otherwise. */
+  .upi b { display: block; }
+  .upin { display: block; font-style: normal; font-weight: 500; font-size: 12px;
+          color: ${t.sub}; margin-top: 2px; }
+  .upia { font-style: normal; font-weight: 700; font-size: 15px; color: ${t.accent};
+          white-space: nowrap; margin-left: auto; padding-left: 10px; }
+  .upiv { font-size: 12px; color: ${pageSub(t)}; text-align: center;
+          margin: -4px 0 12px; }
+  .upiv code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+               font-size: 12px; color: ${t.text}; background: ${t.card};
+               border-radius: 6px; padding: 2px 6px; }
 
   /* Gallery — a scroll-snap portfolio strip. 82% cards leave the next
      photo peeking in (the swipe affordance); captions sit on the page
