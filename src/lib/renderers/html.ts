@@ -66,6 +66,8 @@ export const THEMES: Record<string, ThemePalette> = {
   rosegold: { bg: "#140a0d", card: "#24121899", text: "#fff1f2", sub: "#fda4af", accent: "#fb7185" },
   forest:   { bg: "#06110b", card: "#0d1f1599", text: "#f0fdf4", sub: "#86efac", accent: "#22c55e" },
   daylight: { bg: "#f8fafc", card: "#ffffffcc", text: "#0f172a", sub: "#475569", accent: "#0284c7" },
+  /* iKundli's porcelain — the public page wears the landing's identity. */
+  kundli:   { bg: "#fefefe", card: "#faf6f2", text: "#110e0c", sub: "#5a4e46", accent: "#c85c10" },
   mono:     { bg: "#0a0a0a", card: "#16161699", text: "#fafafa", sub: "#a3a3a3", accent: "#e5e5e5" },
   slate:    { bg: "#0b1017", card: "#151d2999", text: "#f1f5f9", sub: "#94a3b8", accent: "#38bdf8" },
   // ── The gradient tier — flagship strength, still one HTML file, zero JS ──

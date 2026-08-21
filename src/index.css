@@ -132,6 +132,56 @@
  * spectrum drifting in the canvas. Pure CSS3. SpaceX elegance,
  * Porsche restraint.
  */
+[data-theme="kundli"] {
+  /* iKundli — warm porcelain. Sukuna's India register: a near-white
+     canvas, near-black ink, ceramic-glass cards on warm tints, and a
+     marigold accent. Instrument Serif carries the display voice over
+     Outfit body — the serif IS the brand. */
+  color-scheme: light;
+
+  --ink-950: 254 254 254;   /* #FEFEFE page */
+  --ink-900: 255 255 255;   /* card — true white porcelain */
+  --ink-850: 250 246 242;   /* #FAF6F2 inset, warm */
+  --ink-800: 232 223 214;   /* border, warm */
+  --ink-700: 214 202 190;   /* strong border */
+
+  --fg: 17 14 12;           /* #110E0C ink */
+  --fg-muted: 90 78 70;
+  --fg-subtle: 130 116 106;
+  --fg-faint: 168 154 143;
+
+  /* marigold — India's accent, deepened for contrast on porcelain */
+  --accent: 200 92 16;        /* #C85C10 */
+  --accent-soft: 166 74 12;   /* link text on light */
+  --accent-glow: 243 122 32;  /* #F37A20 */
+
+  --glow-alpha: 0.09;
+
+  --radius-card: 1.75rem;     /* ceramic: generous, soft */
+  --radius-ctl: 1rem;
+  --shadow-card: 0 1px 2px rgb(17 14 12 / 0.03), 0 12px 32px -20px rgb(17 14 12 / 0.16);
+  --shadow-card-hover: 0 2px 6px rgb(17 14 12 / 0.05), 0 22px 48px -24px rgb(17 14 12 / 0.22);
+  --shadow-pop: 0 28px 70px -20px rgb(17 14 12 / 0.24);
+  --ring-focus: 0 0 0 3px rgb(var(--accent) / 0.14);
+  --field-border: 224 213 203;
+  --font-display: "Instrument Serif", "Inter Tight", Georgia, serif;
+  --font-body: "Outfit", "Inter", system-ui, sans-serif;
+}
+
+/* The serif display wants air, not tight tracking — undo the sans
+   letter-spacing the other themes rely on. */
+[data-theme="kundli"] .font-display,
+[data-theme="kundli"] h1,
+[data-theme="kundli"] h2 {
+  letter-spacing: -0.015em;
+  font-weight: 400;
+}
+[data-theme="kundli"] .kicker {
+  letter-spacing: 0.18em;
+  font-family: "Outfit", system-ui, sans-serif;
+  font-weight: 700;
+}
+
 [data-theme="mach"] {
   color-scheme: dark;
 

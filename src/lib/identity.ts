@@ -89,6 +89,7 @@ export const FONTS = {
   montserrat:     { label: "Montserrat (bold)",     tier: "premium", css: "'Montserrat', system-ui, sans-serif",       google: "Montserrat:wght@400;600;800" },
   manrope:        { label: "Manrope (crisp)",       tier: "premium", css: "'Manrope', system-ui, sans-serif",          google: "Manrope:wght@400;600;800" },
   outfit:         { label: "Outfit (geometric)",    tier: "premium", css: "'Outfit', system-ui, sans-serif",           google: "Outfit:wght@400;600;800" },
+  "instrument-serif": { label: "Instrument Serif (editorial)", tier: "premium", css: "'Instrument Serif', Georgia, serif", google: "Instrument+Serif:ital@0;1" },
   sora:           { label: "Sora (future)",         tier: "premium", css: "'Sora', system-ui, sans-serif",             google: "Sora:wght@400;600;800" },
   urbanist:       { label: "Urbanist (sleek)",      tier: "premium", css: "'Urbanist', system-ui, sans-serif",         google: "Urbanist:wght@400;600;800" },
   "plus-jakarta": { label: "Plus Jakarta (studio)", tier: "premium", css: "'Plus Jakarta Sans', system-ui, sans-serif", google: "Plus+Jakarta+Sans:wght@400;600;800" },
