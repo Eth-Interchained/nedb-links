@@ -7,6 +7,7 @@ import {
   Eye,
   IndianRupee,
   MousePointerClick,
+  LogOut,
   RefreshCw,
   ShieldCheck,
   ShoppingBag,
@@ -16,7 +17,8 @@ import {
 
 import { Nav } from "../src/components/Nav";
 import { Footer } from "../src/components/Footer";
-import { ApiError, getJson } from "../src/lib/api";
+import { ApiError, getOperatorJson, getOperatorToken, setOperatorToken } from "../src/lib/api";
+import { OperatorGate } from "../src/components/OperatorGate";
 
 export const intent = {
   purpose:
@@ -91,27 +93,34 @@ export default function AdminPage(): React.ReactElement {
   const [feed, setFeed] = useState<FeedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // null = haven't checked yet; false = show the gate. Kept distinct so
+  // the gate doesn't flash before the first request resolves.
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
       const [o, e] = await Promise.all([
-        getJson<Overview>("/api/admin/overview"),
-        getJson<{ events: FeedEvent[] }>("/api/admin/events?limit=60"),
+        getOperatorJson<Overview>("/api/admin/overview"),
+        getOperatorJson<{ events: FeedEvent[] }>("/api/admin/events?limit=60"),
       ]);
       setData(o);
       setFeed(e.events ?? []);
+      setUnlocked(true);
     } catch (err) {
-      // The 401 here is the common case, not an error state: this page is
-      // operator-only and most people who reach it simply aren't one.
-      setError(
-        err instanceof ApiError && err.status === 401
-          ? "This console needs the operator token. Sign in with it to continue."
-          : err instanceof Error
-            ? err.message
-            : "couldn't load the console",
-      );
+      // A 401 is not an error to report — it just means "locked", which
+      // is the resting state for almost everyone who lands here. Show
+      // the gate instead of a scary banner with nothing to act on.
+      if (err instanceof ApiError && err.status === 401) {
+        setUnlocked(false);
+        // A stored key that stopped working (rotated env, wrong
+        // instance) must not linger and fail every load.
+        if (getOperatorToken()) setOperatorToken("");
+      } else {
+        setUnlocked(true);
+        setError(err instanceof Error ? err.message : "couldn't load the console");
+      }
     } finally {
       setBusy(false);
     }
@@ -128,6 +137,7 @@ export default function AdminPage(): React.ReactElement {
     <>
       <Nav />
       <main className="w-full max-w-5xl mx-auto px-5 py-10">
+        {unlocked === true && (
         <div className="flex items-end justify-between gap-3 mb-6">
           <div>
             <p className="kicker">operator console</p>
@@ -135,13 +145,32 @@ export default function AdminPage(): React.ReactElement {
               {data?.instance.brand ?? "Instance"} at a glance
             </h1>
             <p className="text-fg-muted text-sm mt-1.5">
-              Live aggregation over the event log — nothing precomputed, nothing cached.
+              Every number is queried live from the event log when this page loads — no
+              counters, no cache, so nothing here can drift. The trade is cost: it scans on
+              each visit, and very large instances will read a capped sample.
             </p>
           </div>
-          <button onClick={() => void load()} disabled={busy} className="icon-btn" title="Refresh">
-            <RefreshCw size={16} className={busy ? "animate-spin" : ""} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => void load()} disabled={busy} className="icon-btn" title="Refresh">
+              <RefreshCw size={16} className={busy ? "animate-spin" : ""} />
+            </button>
+            <button
+              onClick={() => {
+                setOperatorToken("");
+                setData(null);
+                setFeed([]);
+                setUnlocked(false);
+              }}
+              className="icon-btn"
+              title="Lock the console"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
+        )}
+
+        {unlocked === false && <OperatorGate onUnlocked={() => void load()} />}
 
         {error && (
           <div className="panel !border-signal-amber/40 bg-signal-amber/10 px-4 py-3 text-sm">{error}</div>
